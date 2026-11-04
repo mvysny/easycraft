@@ -127,6 +127,36 @@
   .hud .slot.sel { border-color: #fff; background: rgba(255, 255, 255, 0.45); transform: translateY(-6px) scale(1.08); }
   .hud .slot img { width: 100%; height: 100%; display: block; }
   .hud .slot span { position: absolute; top: 0; left: 3px; font-size: 11px; font-weight: 600; color: #fff; text-shadow: 0 1px 2px #000; }
+  .hud .slot b, .hud .cell b {
+    position: absolute; right: 2px; bottom: 0; font-size: 12px; font-weight: 700; color: #fff;
+    text-shadow: 0 1px 2px #000, 0 0 3px #000;
+  }
+  .hud .slot.empty img { opacity: 0.35; }
+
+  /* the bag: one per player, inside that player's HUD */
+  .hud .bag {
+    position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%); display: none;
+    --cell: min(44px, calc((100cqw - 90px) / 10), calc((100cqh - 200px) / 3.4));
+    background: var(--card); color: var(--ink); border-radius: 22px; padding: 10px 16px 12px;
+    box-shadow: 0 8px 0 rgba(0, 0, 0, 0.18); border: 4px solid var(--pc); text-align: center;
+  }
+  .hud .bag.show { display: block; }
+  .hud .bag h3 { margin: 0; font-size: clamp(18px, 4cqw, 26px); }
+  .hud .bag h4 { margin: 6px 0 4px; font-size: 14px; color: #4a5b6c; text-align: left; }
+  .hud .bag .grid { display: grid; grid-template-columns: repeat(10, var(--cell)); gap: 3px; }
+  .hud .cell {
+    width: var(--cell); height: var(--cell); position: relative; box-sizing: border-box;
+    border-radius: 8px; background: #e4ebf2; border: 3px solid transparent;
+  }
+  .hud .cell img { width: 100%; height: 100%; display: block; }
+  .hud .cell.unknown img { filter: brightness(0); opacity: 0.25; }
+  .hud .cell.unknown::after {
+    content: '?'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-size: calc(var(--cell) * 0.5); font-weight: 700; color: #8a9aaa;
+  }
+  .hud .cell.cur { border-color: var(--pc); background: #fff; transform: scale(1.12); box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25); }
+  .hud .bag .name { margin-top: 8px; font-size: clamp(15px, 3cqw, 20px); font-weight: 600; min-height: 1.3em; }
+  .hud .bag .keys { margin-top: 2px; font-size: 13px; color: #4a5b6c; }
   .hud .toast {
     position: absolute; left: 50%; bottom: calc(var(--slot) + 36px); transform: translateX(-50%);
     color: #fff; font-size: clamp(16px, 4cqw, 28px); font-weight: 600; white-space: nowrap;
@@ -151,7 +181,7 @@
 <div id="overlay">
   <div class="card page" id="page-main">
     <h1>Easy<span class="b">Craft</span></h1>
-    <p class="tagline" id="tagline">Build anything you can imagine!</p>
+    <p class="tagline" id="tagline">Build anything you can imagine — and find flowers, shells, apples and gems!</p>
     <table class="controls">
       <thead><tr><th></th><th>⌨️ Keyboard</th><th>🎮 Controller</th></tr></thead>
       <tbody>
@@ -161,6 +191,7 @@
         <tr><td>⛏️ Take a block</td><td>Left click</td><td><kbd>RT</kbd></td></tr>
         <tr><td>🧱 Put a block</td><td>Right click</td><td><kbd>LT</kbd></td></tr>
         <tr><td>Pick a block</td><td><kbd>1</kbd>–<kbd>0</kbd>, wheel</td><td><kbd>LB</kbd><kbd>RB</kbd></td></tr>
+        <tr><td>🎒 Bag</td><td><kbd>E</kbd></td><td><kbd>X</kbd></td></tr>
         <tr><td>✈️ Fly on/off</td><td><kbd>F</kbd></td><td><kbd>Y</kbd></td></tr>
         <tr><td>Fly down</td><td><kbd>Shift</kbd></td><td><kbd>B</kbd></td></tr>
         <tr><td>🏠 Go home</td><td><kbd>H</kbd></td><td><kbd>Back</kbd></td></tr>
@@ -222,6 +253,7 @@ const TILE_NAMES = [
   'grass_top', 'grass_side', 'dirt', 'stone', 'planks', 'log_side', 'log_top', 'leaves',
   'sand', 'glass', 'brick', 'water', 'snow', 'bedrock', 'gold',
   'red', 'orange', 'yellow', 'lime', 'blue', 'purple', 'pink', 'white',
+  'flower_red', 'flower_yellow', 'shell', 'apple', 'gem', 'gem_ore', 'apple_leaves',
 ];
 const T = Object.fromEntries(TILE_NAMES.map((n, i) => [n, i]));
 const ATLAS_W = ATLAS_COLS * TILE;
@@ -246,6 +278,20 @@ const atlasImg = new ImageData(ATLAS_W, ATLAS_H);
   const sprinkle = (c, n, amt = 0.08) => { for (let i = 0; i < n; i++) set((rnd() * TILE) | 0, (rnd() * TILE) | 0, vary(c, amt)); };
   const border = (c, amt = 0.05) => {
     for (let i = 0; i < TILE; i++) { set(i, 0, vary(c, amt)); set(i, TILE - 1, vary(c, amt)); set(0, i, vary(c, amt)); set(TILE - 1, i, vary(c, amt)); }
+  };
+  const clear = () => { for (let y = 0; y < TILE; y++) for (let x = 0; x < TILE; x++) set(x, y, [0, 0, 0], 0); };
+  const disc = (cx, cy, r, c, amt = 0.04) => {
+    for (let y = 0; y < TILE; y++) for (let x = 0; x < TILE; x++) {
+      if ((x + 0.5 - cx) ** 2 + (y + 0.5 - cy) ** 2 <= r * r) set(x, y, vary(c, amt));
+    }
+  };
+  const flower = (petal, middle) => {
+    clear();
+    const STEM = [58, 150, 46];
+    for (let y = 7; y < TILE; y++) set(7, y, vary(STEM, 0.05));
+    for (const [x, y] of [[8, 11], [9, 10], [10, 10], [6, 13], [5, 12], [4, 12]]) set(x, y, vary(STEM, 0.08));
+    for (const [dx, dy] of [[0, -3], [3, 0], [0, 3], [-3, 0], [2, -2], [2, 2], [-2, 2], [-2, -2]]) disc(7.5 + dx, 5 + dy, 1.7, petal);
+    disc(7.5, 5, 1.5, middle);
   };
   const GREEN = [96, 190, 62], DIRT = [134, 96, 67], BARK = [112, 82, 52];
   const paint = {
@@ -320,6 +366,46 @@ const atlasImg = new ImageData(ATLAS_W, ATLAS_H);
       fill([250, 204, 52], 0.07); border([206, 150, 22]);
       for (const [x, y] of [[3, 3], [4, 3], [3, 4], [5, 3], [3, 5], [10, 11], [11, 10]]) set(x, y, [255, 244, 160]);
     },
+    flower_red() { flower([236, 58, 74], [255, 214, 64]); },
+    flower_yellow() { flower([255, 216, 48], [196, 110, 30]); },
+    shell() {   // seen from above: a fan of ridges
+      clear();
+      for (let y = 0; y < TILE; y++) for (let x = 0; x < TILE; x++) {
+        const dx = x + 0.5 - 8, dy = 13 - (y + 0.5), r = Math.hypot(dx, dy);
+        if (dy < -1.5 || r > 7.5 || (dy < 0 && Math.abs(dx) > 2)) continue;
+        const ridge = Math.floor((Math.atan2(dx, dy) + 2) * 3) % 2;
+        set(x, y, vary(ridge ? [238, 184, 168] : [252, 226, 210], 0.04));
+      }
+    },
+    apple() {
+      clear();
+      disc(7.5, 9.5, 5.5, [214, 40, 48], 0.05);
+      disc(5.5, 7.5, 1.4, [252, 120, 120], 0.02);
+      for (let y = 1; y < 5; y++) set(8, y, vary([110, 72, 40], 0.05));
+      for (const [x, y] of [[9, 2], [10, 2], [11, 1], [10, 3], [11, 2], [12, 1]]) set(x, y, vary([76, 170, 52], 0.06));
+    },
+    gem() {
+      for (let y = 0; y < TILE; y++) for (let x = 0; x < TILE; x++) {
+        const facet = ((x + y) >> 2) % 2 ? 1.0 : 0.82;   // diagonal facets
+        set(x, y, vary(mul([64, 196, 246], facet), 0.03));
+      }
+      border([30, 110, 190], 0.03);
+      for (const [x, y] of [[3, 3], [4, 3], [3, 4], [4, 4], [11, 9], [12, 8]]) set(x, y, [236, 252, 255]);
+    },
+    gem_ore() {
+      paint.stone();
+      for (const [x, y] of [[3, 3], [11, 4], [6, 10], [12, 12], [2, 12]]) {
+        set(x, y, vary([60, 190, 246], 0.04)); set(x + 1, y, vary([40, 150, 226], 0.04));
+        set(x, y + 1, vary([40, 150, 226], 0.04)); set(x + 1, y + 1, vary([140, 230, 255], 0.03));
+      }
+    },
+    apple_leaves() {
+      paint.leaves();
+      for (const [x, y] of [[3, 4], [10, 2], [12, 10], [5, 11]]) {
+        set(x, y, [226, 46, 52]); set(x + 1, y, [206, 36, 44]);
+        set(x, y + 1, [190, 30, 40]); set(x + 1, y + 1, [170, 24, 34]);
+      }
+    },
   };
   const COLORS = {
     red: [228, 62, 62], orange: [246, 146, 42], yellow: [250, 226, 62], lime: [122, 216, 62],
@@ -346,13 +432,23 @@ function tileAverageColor(t) {
 // ---------------------------------------------------------------------------
 const BLOCKS = [null];
 const B = {};
+/**
+ * Adds a block. `opts.shape` is 'cube' (the default), 'cross' (two crossed pictures, like a
+ * flower) or 'flat' (a picture lying on the ground); only cubes are solid. Taking a block with
+ * `opts.drop` (a block key) puts that block into the player's bag, and `opts.becomes` is what is
+ * left in its place (air if not given) — an apple tree's leaves stay leaves when you pick the apple.
+ */
 function defBlock(key, name, tex, opts = {}) {
   const t = typeof tex === 'string' ? { top: tex, side: tex, bottom: tex } : tex;
   const id = BLOCKS.length;
+  const shape = opts.shape ?? 'cube';
   BLOCKS.push({
-    id, key, name,
+    id, key, name, shape,
     top: T[t.top], side: T[t.side], bottom: T[t.bottom],
-    liquid: !!opts.liquid, seeThrough: !!opts.seeThrough, unbreakable: !!opts.unbreakable,
+    liquid: !!opts.liquid, unbreakable: !!opts.unbreakable,
+    seeThrough: !!opts.seeThrough || shape !== 'cube',
+    solid: !opts.liquid && shape === 'cube',
+    drop: opts.drop ?? null, becomes: opts.becomes ?? null,
     pitch: opts.pitch ?? 1,
     color: tileAverageColor(T[t.side]),
   });
@@ -375,14 +471,32 @@ for (const [key, name, p] of [
   ['red', 'Red', 1.0], ['orange', 'Orange', 1.12], ['yellow', 'Yellow', 1.26], ['lime', 'Green', 1.33],
   ['blue', 'Blue', 1.5], ['purple', 'Purple', 1.68], ['pink', 'Pink', 1.78], ['white', 'White', 2.0],
 ]) defBlock(key, name, key, { pitch: p });
+// Things to find. Each one is counted in the player's bag; the building blocks above are endless.
+defBlock('flower_red', 'Red Flower', 'flower_red', { shape: 'cross', drop: 'flower_red', pitch: 1.6 });
+defBlock('flower_yellow', 'Yellow Flower', 'flower_yellow', { shape: 'cross', drop: 'flower_yellow', pitch: 1.7 });
+defBlock('shell', 'Seashell', 'shell', { shape: 'flat', drop: 'shell', pitch: 1.9 });
+defBlock('apple', 'Apple', 'apple', { shape: 'cross', drop: 'apple', pitch: 1.3 });
+defBlock('gem', 'Gem', 'gem', { drop: 'gem', pitch: 2.2 });
+defBlock('gem_ore', 'Gem Rock', 'gem_ore', { drop: 'gem', pitch: 0.75 });
+defBlock('apple_leaves', 'Apple Leaves', 'apple_leaves', { drop: 'apple', becomes: 'leaves', pitch: 1.4 });
 
+/** The building blocks a new player's hotbar starts with; you can always build with these. */
 const HOTBAR = [
   'grass', 'dirt', 'stone', 'planks', 'log', 'leaves', 'sand', 'glass', 'brick', 'water',
   'snow', 'gold', 'red', 'orange', 'yellow', 'lime', 'blue', 'purple', 'pink', 'white',
 ].map(k => B[k]);
+/** The things you find, in bag order, with where to look for them. */
+const FINDS = [
+  ['flower_red', 'Look in the grass!'], ['flower_yellow', 'Look in the grass!'],
+  ['shell', 'Look on the beach!'], ['apple', 'Look in the trees!'], ['gem', 'Dig into the stone!'],
+].map(([k, hint]) => ({ id: B[k], hint }));
+const isFind = id => FINDS.some(f => f.id === id);
+/** Everything the bag screen shows: the building blocks, then the finds. */
+const BAG_ITEMS = [...HOTBAR, ...FINDS.map(f => f.id)];
 
-const isSolid = id => id !== 0 && !BLOCKS[id].liquid;
+const isSolid = id => id !== 0 && BLOCKS[id].solid;
 const isOccluder = id => id !== 0 && !BLOCKS[id].liquid && !BLOCKS[id].seeThrough;
+const isLeaves = id => id === B.leaves || id === B.apple_leaves;
 
 // ---------------------------------------------------------------------------
 // World data + generation
@@ -459,6 +573,43 @@ function generateWorld(seed) {
     for (let y = h + 1; y <= top; y++) setBlockRaw(x, y, z, B.log);
     setBlockRaw(x, h, z, B.dirt);
   }
+  scatterFinds(rnd);
+}
+
+/**
+ * Hides things to find in the world as it is now: flowers on grass, shells on the beach, apples
+ * in the outside of the trees, and gem rock in the stone (plus a few patches on the surface, so
+ * the first one is easy to spot). Works on any world, so a world saved before there were finds
+ * gets them too.
+ */
+function scatterFinds(rnd) {
+  const open = (x, y, z) => getBlock(x, y, z) === 0;
+  for (let z = 0; z < SZ; z++) for (let x = 0; x < SX; x++) {
+    let top = SY - 1;
+    while (top > 0 && getBlock(x, top, z) === 0) top--;
+    const id = getBlock(x, top, z), r = rnd();
+    if (id === B.grass && open(x, top + 1, z)) {
+      if (r < 0.035) setBlockRaw(x, top + 1, z, rnd() < 0.5 ? B.flower_red : B.flower_yellow);
+      else if (r > 0.9985) setBlockRaw(x, top, z, B.gem_ore);
+    } else if (id === B.sand && top >= WATER && open(x, top + 1, z) && r < 0.05) {
+      setBlockRaw(x, top + 1, z, B.shell);
+    }
+    for (let y = 1; y < top; y++) {
+      const here = getBlock(x, y, z);
+      if (here === B.leaves) {
+        const outside = open(x + 1, y, z) || open(x - 1, y, z) || open(x, y, z + 1) || open(x, y, z - 1) || open(x, y - 1, z);
+        if (outside && rnd() < 0.12) setBlockRaw(x, y, z, B.apple_leaves);
+      } else if (here === B.stone && rnd() < 0.004) {
+        // a little vein of 2 to 5 gem rocks
+        let gx = x, gy = y, gz = z;
+        for (let n = 2 + ((rnd() * 4) | 0); n > 0; n--) {
+          if (getBlock(gx, gy, gz) === B.stone) setBlockRaw(gx, gy, gz, B.gem_ore);
+          const a = (rnd() * 3) | 0, s = rnd() < 0.5 ? -1 : 1;
+          if (a === 0) gx += s; else if (a === 1) gy += s; else gz += s;
+        }
+      }
+    }
+  }
 }
 
 function surfaceY(x, z) {
@@ -529,7 +680,7 @@ const UV_INSET = 0.02;
 function faceVisible(id, nid) {
   if (nid === 0) return true;
   const a = BLOCKS[id], b = BLOCKS[nid];
-  if (a.liquid) return false;
+  if (a.liquid) return b.shape !== 'cube';
   if (b.liquid) return true;
   if (b.seeThrough) return id !== nid;
   return false;
@@ -545,6 +696,33 @@ function cornerAO(x, y, z, f, ci) {
   return 3 - (s1 + s2 + c);
 }
 
+/**
+ * Adds one picture of `tile`, seen from both sides, to mesh `o`. `p` holds four corners as
+ * [x, y, z]: bottom-left, bottom-right, top-left, top-right of the picture.
+ */
+function pushPicture(o, p, tile, brightness) {
+  const tu = (tile % ATLAS_COLS) * TILE, tv = Math.floor(tile / ATLAS_COLS) * TILE;
+  const ndx = o.pos.length / 3;
+  const br = Math.pow(brightness, 2.2);
+  [[0, 0], [1, 0], [0, 1], [1, 1]].forEach(([cu, cv], i) => {
+    o.pos.push(...p[i]);
+    o.uv.push((tu + UV_INSET + cu * (TILE - 2 * UV_INSET)) / ATLAS_W, 1 - (tv + UV_INSET + (1 - cv) * (TILE - 2 * UV_INSET)) / ATLAS_H);
+    o.col.push(br, br, br);
+  });
+  o.idx.push(ndx, ndx + 1, ndx + 2, ndx + 2, ndx + 1, ndx + 3, ndx, ndx + 2, ndx + 1, ndx + 2, ndx + 3, ndx + 1);
+}
+/** A 'cross' block is two pictures crossing corner to corner; a 'flat' one lies just above the floor. */
+function pushShape(o, blk, x, y, z) {
+  if (blk.shape === 'flat') {
+    const h = y + 0.03;
+    pushPicture(o, [[x, h, z + 1], [x + 1, h, z + 1], [x, h, z], [x + 1, h, z]], blk.top, 1.0);
+    return;
+  }
+  const a = 0.15, b = 1 - a;
+  pushPicture(o, [[x + a, y, z + a], [x + b, y, z + b], [x + a, y + 1, z + a], [x + b, y + 1, z + b]], blk.side, 0.92);
+  pushPicture(o, [[x + a, y, z + b], [x + b, y, z + a], [x + a, y + 1, z + b], [x + b, y + 1, z + a]], blk.side, 0.85);
+}
+
 function buildChunkGeometry(cx, cz) {
   const out = [{ pos: [], uv: [], col: [], idx: [] }, { pos: [], uv: [], col: [], idx: [] }];
   const x0 = cx * CHUNK, z0 = cz * CHUNK;
@@ -553,6 +731,7 @@ function buildChunkGeometry(cx, cz) {
     const id = blocks[index(x, y, z)];
     if (!id) continue;
     const blk = BLOCKS[id];
+    if (blk.shape !== 'cube') { pushShape(out[0], blk, x, y, z); continue; }
     const lowerTop = blk.liquid && getMesh(x, y + 1, z) !== id;
     for (const f of FACES) {
       const nid = getMesh(x + f.dir[0], y + f.dir[1], z + f.dir[2]);
@@ -765,6 +944,21 @@ function playPlace(pitch) {
   o.connect(g).connect(audio.destination);
   o.start(t); o.stop(t + 0.18);
 }
+/** A bright two-note chime for putting something in the bag. */
+function playCollect(pitch) {
+  if (!audio) return;
+  const t = audio.currentTime;
+  [[660, 0], [990, 0.07]].forEach(([f, at]) => {
+    const o = audio.createOscillator(), g = audio.createGain();
+    o.type = 'sine';
+    o.frequency.value = f * pitch;
+    g.gain.setValueAtTime(0.0001, t + at);
+    g.gain.exponentialRampToValueAtTime(0.2, t + at + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + at + 0.22);
+    o.connect(g).connect(audio.destination);
+    o.start(t + at); o.stop(t + at + 0.24);
+  });
+}
 function playBreak(pitch) {
   if (!audio) return;
   const t = audio.currentTime, len = 0.14;
@@ -883,7 +1077,7 @@ function findHome() {
   const cx = SX >> 1, cz = SZ >> 1;
   for (let r = 0; r < SX / 2; r++) for (let dz = -r; dz <= r; dz++) for (let dx = -r; dx <= r; dx++) {
     const x = cx + dx, z = cz + dz, y = surfaceY(x, z);
-    if (y > WATER + 1 && getBlock(x, y - 1, z) !== B.leaves && !collides(x + 0.5, y, z + 0.5)) {
+    if (y > WATER + 1 && !isLeaves(getBlock(x, y - 1, z)) && !collides(x + 0.5, y, z + 0.5)) {
       home.set(x + 0.5, y, z + 0.5); return;
     }
   }
@@ -892,10 +1086,14 @@ function findHome() {
 
 // ---------------------------------------------------------------------------
 // Input. Each player reads one input source per frame into the same shape:
-// movement, look deltas, held buttons and one-shot actions.
+// movement, look deltas, held buttons, a direction for moving around the bag
+// (navX right, navY down, each -1..1) and one-shot actions.
+// Actions: a hotbar slot number, 'prev'/'next' (slot), 'left'/'right'/'up'/'down'
+// (a d-pad press), 'fly', 'home', 'bag', 'ok', 'back', 'break', 'place'.
 // ---------------------------------------------------------------------------
 const NO_INPUT = Object.freeze({
-  fwd: 0, side: 0, yaw: 0, pitch: 0, jump: false, down: false, breakHeld: false, placeHeld: false, actions: [],
+  fwd: 0, side: 0, yaw: 0, pitch: 0, jump: false, down: false, breakHeld: false, placeHeld: false,
+  navX: 0, navY: 0, actions: [],
 });
 
 let playing = false;
@@ -907,6 +1105,8 @@ class KeyboardInput {
   get label() { return '⌨️ Keyboard & mouse'; }
   get detail() { return ''; }
   get menuKey() { return 'Esc'; }
+  get bagKey() { return 'E'; }
+  get bagKeys() { return '←↑↓→ pick · Space = hold it · E = close'; }
   reset() { this.keys = {}; this.buttons = [false, false, false]; this.actions = []; this.mdx = 0; this.mdy = 0; }
   /** A hint for this player's screen, or null. */
   message() {
@@ -921,6 +1121,8 @@ class KeyboardInput {
       pitch: -this.mdy * 0.0024,
       jump: !!k.Space, down: !!(k.ShiftLeft || k.ShiftRight),
       breakHeld: this.buttons[0], placeHeld: this.buttons[2],
+      navX: (k.KeyD || k.ArrowRight ? 1 : 0) - (k.KeyA || k.ArrowLeft ? 1 : 0),
+      navY: (k.KeyS || k.ArrowDown ? 1 : 0) - (k.KeyW || k.ArrowUp ? 1 : 0),
       actions: this.actions,
     };
     this.actions = []; this.mdx = 0; this.mdy = 0;
@@ -930,7 +1132,7 @@ class KeyboardInput {
 const keyboard = new KeyboardInput();
 
 // Gamepad buttons in the browser's "standard" layout (Xbox names; PlayStation: A=✕, B=○, X=□, Y=△).
-const PAD = { A: 0, B: 1, X: 2, Y: 3, LB: 4, RB: 5, LT: 6, RT: 7, BACK: 8, START: 9, LEFT: 14, RIGHT: 15 };
+const PAD = { A: 0, B: 1, X: 2, Y: 3, LB: 4, RB: 5, LT: 6, RT: 7, BACK: 8, START: 9, UP: 12, DOWN: 13, LEFT: 14, RIGHT: 15 };
 /** Polls every connected gamepad once per frame, so "pressed" means "went down this frame". */
 const Pads = {
   now: new Map(), prev: new Map(),
@@ -958,6 +1160,8 @@ class PadInput {
   get label() { return `🎮 Controller ${this.index + 1}`; }
   get detail() { return Pads.id(this.index); }
   get menuKey() { return 'Start'; }
+  get bagKey() { return 'X'; }
+  get bagKeys() { return 'Stick pick · A = hold it · B = close'; }
   reset() {}
   message() { return Pads.connected(this.index) ? null : '🎮 Controller unplugged! Plug it back in.'; }
   read(dt) {
@@ -974,13 +1178,18 @@ class PadInput {
     const actions = [];
     if (Pads.pressed(i, PAD.Y)) actions.push('fly');
     if (Pads.pressed(i, PAD.BACK)) actions.push('home');
-    if (Pads.pressed(i, PAD.LB) || Pads.pressed(i, PAD.LEFT)) actions.push('prev');
-    if (Pads.pressed(i, PAD.RB) || Pads.pressed(i, PAD.RIGHT)) actions.push('next');
+    if (Pads.pressed(i, PAD.X)) actions.push('bag');
+    if (Pads.pressed(i, PAD.A)) actions.push('ok');
+    if (Pads.pressed(i, PAD.B)) actions.push('back');
+    if (Pads.pressed(i, PAD.LB)) actions.push('prev');
+    if (Pads.pressed(i, PAD.RB)) actions.push('next');
+    for (const d of ['left', 'right', 'up', 'down']) if (Pads.pressed(i, PAD[d.toUpperCase()])) actions.push(d);
     return {
       fwd: -ly, side: lx,
       yaw: -curve(rx) * 3.0 * dt, pitch: -curve(ry) * 2.2 * dt,
       jump: Pads.down(i, PAD.A), down: Pads.down(i, PAD.B),
       breakHeld: Pads.down(i, PAD.RT), placeHeld: Pads.down(i, PAD.LT),
+      navX: lx, navY: ly,
       actions,
     };
   }
@@ -995,6 +1204,11 @@ function blockIcon(id) {
   const g = c.getContext('2d');
   g.imageSmoothingEnabled = false;
   const b = BLOCKS[id];
+  if (b.shape !== 'cube') {   // the picture itself, big
+    const t = b.shape === 'flat' ? b.top : b.side;
+    g.drawImage(atlasCanvas, (t % ATLAS_COLS) * TILE, Math.floor(t / ATLAS_COLS) * TILE, TILE, TILE, 4, 4, 40, 40);
+    return c.toDataURL();
+  }
   if (b.liquid) g.globalAlpha = 0.75;
   const face = (tile, a, bb, cc, d, e, f, dark) => {
     const sx = (tile % ATLAS_COLS) * TILE, sy = Math.floor(tile / ATLAS_COLS) * TILE;
@@ -1013,44 +1227,85 @@ function blockIcon(id) {
   face(b.top, 20 * k, -10 * k, 20 * k, 10 * k, 4, 13, 0); // top
   return c.toDataURL();
 }
-const ICONS = HOTBAR.map(blockIcon);
+const ICONS = BLOCKS.map(b => b && blockIcon(b.id));
+
+/** An icon in a hotbar slot or bag cell; a find the player has found shows how many they have. */
+function fillCell(el, id, bag) {
+  el.replaceChildren();
+  const img = document.createElement('img');
+  img.src = ICONS[id]; img.alt = BLOCKS[id].name;
+  el.appendChild(img);
+  if (bag.has(id)) {
+    const n = document.createElement('b'); n.textContent = bag.get(id) || 0; el.appendChild(n);
+  }
+}
 
 class Hud {
   constructor(slot, input) {
+    this.input = input;
     const el = this.el = document.createElement('div');
     el.className = 'hud';
     el.style.setProperty('--pc', PLAYER_COLORS[slot]);
     el.innerHTML = `<div class="top"><div class="tag">P${slot + 1}</div><div class="badge">✈️ Flying!</div></div>
-      <div class="help">${input.menuKey} = menu</div>
-      <div class="crosshair"></div><div class="msg"></div><div class="toast"></div><div class="hotbar"></div>`;
-    const bar = el.querySelector('.hotbar');
-    HOTBAR.forEach((id, i) => {
-      const s = document.createElement('div');
-      s.className = 'slot';
-      const img = document.createElement('img');
-      img.src = ICONS[i]; img.alt = BLOCKS[id].name;
-      s.appendChild(img);
-      if (input === keyboard && i < 10) {
-        const n = document.createElement('span'); n.textContent = (i + 1) % 10; s.appendChild(n);
-      }
-      bar.appendChild(s);
-    });
-    this.slots = [...bar.children];
+      <div class="help">${input.bagKey} = bag · ${input.menuKey} = menu</div>
+      <div class="crosshair"></div><div class="msg"></div><div class="toast"></div><div class="hotbar"></div>
+      <div class="bag"><h3>🎒 Bag</h3>
+        <h4>🧱 Build with</h4><div class="grid blocks"></div>
+        <h4>✨ Found</h4><div class="grid finds"></div>
+        <div class="name"></div><div class="keys">${input.bagKeys}</div></div>`;
+    this.bar = el.querySelector('.hotbar');
     this.toastEl = el.querySelector('.toast');
     this.badgeEl = el.querySelector('.badge');
     this.msgEl = el.querySelector('.msg');
+    this.bagEl = el.querySelector('.bag');
+    this.bagName = el.querySelector('.bag .name');
+    const grids = [el.querySelector('.grid.blocks'), el.querySelector('.grid.finds')];
+    this.cells = BAG_ITEMS.map((id, i) => {
+      const c = document.createElement('div');
+      c.className = 'cell';
+      grids[i < HOTBAR.length ? 0 : 1].appendChild(c);
+      return c;
+    });
     this.toastTimer = 0;
     this.shownMessage = null;
     document.body.appendChild(el);
   }
-  /** Highlights hotbar slot `i`; `announce` also flashes the block's name. */
-  showSelected(i, announce) {
-    this.slots.forEach((el, j) => el.classList.toggle('sel', j === i));
-    if (!announce) return;
-    this.toastEl.textContent = BLOCKS[HOTBAR[i]].name;
+  /** Redraws the hotbar: `hotbar` holds a block id per slot, `bag` counts the finds. */
+  showHotbar(hotbar, bag) {
+    while (this.bar.children.length < hotbar.length) this.bar.appendChild(document.createElement('div'));
+    hotbar.forEach((id, i) => {
+      const s = this.bar.children[i];
+      fillCell(s, id, bag);
+      s.className = 'slot' + (isFind(id) && !bag.get(id) ? ' empty' : '') + (i === this.selected ? ' sel' : '');
+      if (this.input === keyboard && i < 10) {
+        const n = document.createElement('span'); n.textContent = (i + 1) % 10; s.appendChild(n);
+      }
+    });
+  }
+  /** Highlights hotbar slot `i`. */
+  showSelected(i) {
+    this.selected = i;
+    [...this.bar.children].forEach((el, j) => el.classList.toggle('sel', j === i));
+  }
+  /** Flashes a short line above the hotbar. */
+  toast(text, ms = 900) {
+    this.toastEl.textContent = text;
     this.toastEl.classList.add('show');
     clearTimeout(this.toastTimer);
-    this.toastTimer = setTimeout(() => this.toastEl.classList.remove('show'), 900);
+    this.toastTimer = setTimeout(() => this.toastEl.classList.remove('show'), ms);
+  }
+  /** Shows the bag with the cursor on `BAG_ITEMS[cursor]`, or hides it when `cursor` is null. */
+  showBag(cursor, bag) {
+    this.bagEl.classList.toggle('show', cursor !== null);
+    if (cursor === null) return;
+    BAG_ITEMS.forEach((id, i) => {
+      fillCell(this.cells[i], id, bag);
+      this.cells[i].className = 'cell' + (isFind(id) && !bag.has(id) ? ' unknown' : '') + (i === cursor ? ' cur' : '');
+    });
+    const id = BAG_ITEMS[cursor];
+    const find = FINDS.find(f => f.id === id);
+    this.bagName.textContent = !find ? BLOCKS[id].name
+      : bag.has(id) ? `${BLOCKS[id].name} × ${bag.get(id)}` : `Not found yet — ${find.hint}`;
   }
   set flying(on) { this.badgeEl.classList.toggle('show', on); }
   set message(text) {
@@ -1070,7 +1325,8 @@ class Hud {
 // Player: one person at the screen — body, camera, HUD, and one input source.
 // ---------------------------------------------------------------------------
 const players = [];     // sorted by slot, so Player 1 is always top-left
-const savedSlots = {};  // slot -> [x, y, z, yaw, pitch, flying, selected], survives leaving and saving
+// slot -> [x, y, z, yaw, pitch, flying, selected, bag {id: count}, hotbar [id…]]; survives leaving and saving
+const savedSlots = {};
 
 class Player {
   constructor(slot, input) {
@@ -1081,6 +1337,11 @@ class Player {
     this.yaw = Math.PI * 0.25; this.pitch = -0.15;
     this.onGround = false; this.flying = false;
     this.selected = 0;
+    this.hotbar = HOTBAR.slice();
+    this.bag = new Map();          // find id -> how many; an id is in here once it has been found
+    this.bagCursor = null;         // index into BAG_ITEMS while the bag is open, else null
+    this.navDir = ''; this.navTimer = 0;
+    this.holdOff = false;          // ignore held buttons until they are let go (after closing the bag)
     this.walkPhase = 0; this.swing = 0;
     this.breakTimer = 0; this.placeTimer = 0; this.wasBreak = false; this.wasPlace = false;
     this.rect = { x: 0, y: 0, w: 1, h: 1 };
@@ -1097,6 +1358,7 @@ class Player {
     this.hud = new Hud(slot, input);
 
     if (savedSlots[slot]) this.restore(savedSlots[slot]); else this.goHome();
+    this.hud.showHotbar(this.hotbar, this.bag);
     this.select(this.selected, true);
     this.syncCamera();
     this.updateAvatar(0);
@@ -1107,10 +1369,14 @@ class Player {
     this.yaw = s[3]; this.pitch = s[4];
     this.setFlying(!!s[5]);
     this.selected = s[6] || 0;
+    for (const [id, n] of Object.entries(s[7] || {})) if (isFind(+id)) this.bag.set(+id, Math.max(0, n | 0));
+    const known = id => BAG_ITEMS.includes(id);
+    if (Array.isArray(s[8]) && s[8].length === HOTBAR.length && s[8].every(known)) this.hotbar = s[8].slice();
   }
   snapshot() {
     const p = this.pos;
-    return [p.x, p.y, p.z, this.yaw, this.pitch, this.flying ? 1 : 0, this.selected];
+    return [p.x, p.y, p.z, this.yaw, this.pitch, this.flying ? 1 : 0, this.selected,
+      Object.fromEntries(this.bag), this.hotbar.slice()];
   }
   dispose() {
     scene.remove(this.highlight, this.avatar.root);
@@ -1128,8 +1394,14 @@ class Player {
   }
   setFlying(on) { this.flying = on; this.vel.y = 0; this.hud.flying = on; }
   select(i, quiet) {
-    this.selected = (i % HOTBAR.length + HOTBAR.length) % HOTBAR.length;
-    this.hud.showSelected(this.selected, !quiet);
+    const n = this.hotbar.length;
+    this.selected = (i % n + n) % n;
+    this.hud.showSelected(this.selected);
+    if (!quiet) this.hud.toast(this.itemName(this.hotbar[this.selected]));
+  }
+  /** A block's name; a find also says how many are in the bag. */
+  itemName(id) {
+    return isFind(id) ? `${BLOCKS[id].name} × ${this.bag.get(id) || 0}` : BLOCKS[id].name;
   }
   /** Does this player's body overlap block (x, y, z)? */
   overlaps(x, y, z) {
@@ -1142,38 +1414,134 @@ class Player {
     if (!hit) return;
     const b = BLOCKS[hit.id];
     if (b.unbreakable) { playPlace(0.4); return; }
-    changeBlock(hit.x, hit.y, hit.z, 0);
-    burst(hit.x, hit.y, hit.z, hit.id);
+    changeBlock(hit.x, hit.y, hit.z, b.becomes ? B[b.becomes] : 0);
+    burst(hit.x, hit.y, hit.z, b.drop ? B[b.drop] : hit.id);
     playBreak(b.pitch);
+    if (b.drop) this.collect(B[b.drop]);
+    // a flower or shell standing on the block comes along into the bag
+    const above = getBlock(hit.x, hit.y + 1, hit.z);
+    if (above && !BLOCKS[above].solid && !BLOCKS[above].liquid && !isSolid(getBlock(hit.x, hit.y, hit.z))) {
+      changeBlock(hit.x, hit.y + 1, hit.z, 0);
+      if (BLOCKS[above].drop) this.collect(B[BLOCKS[above].drop]);
+    }
+  }
+  /** Puts one `id` into the bag. */
+  collect(id) {
+    this.bag.set(id, (this.bag.get(id) || 0) + 1);
+    playCollect(BLOCKS[id].pitch / 1.6);
+    const onHotbar = this.hotbar.includes(id);
+    this.hud.toast(`+1 ${BLOCKS[id].name}` + (onHotbar ? '' : ` · ${this.input.bagKey} = bag`), 1400);
+    this.hud.showHotbar(this.hotbar, this.bag);
+    this.showBag();
   }
   placeBlock() {
     const hit = pickBlock(this.camera);
     if (!hit) return;
-    const id = HOTBAR[this.selected];
+    const id = this.hotbar[this.selected];
     const x = hit.x + hit.n[0], y = hit.y + hit.n[1], z = hit.z + hit.n[2];
     if (!inBounds(x, y, z)) return;
     const cur = getBlock(x, y, z);
     if (cur && !BLOCKS[cur].liquid) return;
     if (isSolid(id) && players.some(p => p.overlaps(x, y, z))) return;
+    // flowers, shells and apples stand on solid ground, in the air
+    if (BLOCKS[id].shape !== 'cube' && (cur || !isSolid(getBlock(x, y - 1, z)))) { playPlace(0.4); return; }
+    if (isFind(id)) {
+      const have = this.bag.get(id) || 0;
+      if (!have) { playPlace(0.4); this.hud.toast(`No ${BLOCKS[id].name} left — find more!`, 1400); return; }
+      this.bag.set(id, have - 1);
+      this.hud.showHotbar(this.hotbar, this.bag);
+    }
     changeBlock(x, y, z, id);
     playPlace(BLOCKS[id].pitch);
   }
 
+  // ---- the bag ----
+  openBag() {
+    const i = BAG_ITEMS.indexOf(this.hotbar[this.selected]);
+    this.bagCursor = i < 0 ? 0 : i;
+    this.navDir = 'held';   // a stick already tilted doesn't move the cursor until it's let go
+    this.showBag();
+    playPlace(1.3);
+  }
+  closeBag() {
+    this.bagCursor = null;
+    this.holdOff = true;
+    this.showBag();
+  }
+  showBag() { this.hud.showBag(this.bagCursor, this.bag); }
+  /** Moves the bag cursor; the cells sit in rows of ten, blocks first, then finds. */
+  moveCursor(dx, dy) {
+    const n = BAG_ITEMS.length, c = this.bagCursor;
+    const next = dy ? c + dy * 10 : c + dx;
+    this.bagCursor = Math.max(0, Math.min(n - 1, next));
+    if (this.bagCursor !== c) { this.showBag(); playPlace(1.6); }
+  }
+  /** Puts the item under the cursor into the selected hotbar slot, and closes the bag. */
+  takeFromBag() {
+    const id = BAG_ITEMS[this.bagCursor];
+    if (isFind(id) && !this.bag.has(id)) { playPlace(0.4); return; }
+    const was = this.hotbar.indexOf(id);
+    if (was >= 0) this.hotbar[was] = this.hotbar[this.selected];   // swap, so nothing gets lost
+    this.hotbar[this.selected] = id;
+    this.hud.showHotbar(this.hotbar, this.bag);
+    this.closeBag();
+    this.select(this.selected);
+    playPlace(BLOCKS[id].pitch);
+  }
+  /** Steers the bag cursor with a stick or keys: one step, then repeating while held. */
+  steerBag(it, dt) {
+    const dx = Math.abs(it.navX) > 0.5 ? Math.sign(it.navX) : 0;
+    const dy = Math.abs(it.navY) > 0.5 ? Math.sign(it.navY) : 0;
+    const dir = dx || dy ? `${dx},${dy}` : '';
+    if (this.navDir === 'held') { if (!dir) this.navDir = ''; return; }
+    if (dir !== this.navDir) {
+      this.navDir = dir; this.navTimer = 0.4;
+      if (dir) this.moveCursor(dy ? 0 : dx, dy);
+    } else if (dir && (this.navTimer -= dt) <= 0) {
+      this.navTimer = 0.13;
+      this.moveCursor(dy ? 0 : dx, dy);
+    }
+  }
+
   act(a) {
-    if (typeof a === 'number') this.select(a);
-    else if (a === 'fly') this.setFlying(!this.flying);
-    else if (a === 'home') this.goHome();
+    if (typeof a === 'number') { this.select(a); if (this.bagCursor !== null) this.takeFromBag(); }
+    else if (a === 'bag') { if (this.bagCursor === null) this.openBag(); else this.closeBag(); }
     else if (a === 'next') this.select(this.selected + 1);
     else if (a === 'prev') this.select(this.selected - 1);
+    else if (this.bagCursor !== null) {
+      if (a === 'ok' || a === 'break' || a === 'place') this.takeFromBag();
+      else if (a === 'back') this.closeBag();
+      else if (a === 'left') this.moveCursor(-1, 0);
+      else if (a === 'right') this.moveCursor(1, 0);
+      else if (a === 'up') this.moveCursor(0, -1);
+      else if (a === 'down') this.moveCursor(0, 1);
+    }
+    else if (a === 'fly') this.setFlying(!this.flying);
+    else if (a === 'home') this.goHome();
+    else if (a === 'left') this.select(this.selected - 1);
+    else if (a === 'right') this.select(this.selected + 1);
     else if (a === 'break') this.breakBlock();
     else if (a === 'place') this.placeBlock();
   }
 
   update(dt) {
-    const it = this.input.read(dt);
-    this.yaw += it.yaw;
-    this.pitch = Math.max(-1.55, Math.min(1.55, this.pitch + it.pitch));
-    for (const a of it.actions) this.act(a);
+    let it = this.input.read(dt);
+    if (this.bagCursor !== null) {
+      // a click opens nothing in the world while the bag is open: it takes the item
+      if ((it.breakHeld && !this.wasBreak) || (it.placeHeld && !this.wasPlace)) it.actions.push('ok');
+      this.wasBreak = it.breakHeld; this.wasPlace = it.placeHeld;
+      for (const a of it.actions) this.act(a);
+      if (this.bagCursor !== null) this.steerBag(it, dt);
+      it = NO_INPUT;   // stand still while looking in the bag
+    } else {
+      if (this.holdOff) {
+        if (!it.breakHeld && !it.placeHeld && !it.jump) this.holdOff = false;
+        else it = { ...it, breakHeld: false, placeHeld: false, jump: false };
+      }
+      this.yaw += it.yaw;
+      this.pitch = Math.max(-1.55, Math.min(1.55, this.pitch + it.pitch));
+      for (const a of it.actions) this.act(a);
+    }
 
     // walking direction on the ground; a half-tilted stick walks at half speed
     const mag = Math.min(1, Math.hypot(it.fwd, it.side));
@@ -1229,9 +1597,11 @@ class Player {
     this.syncCamera();
 
     // holding a button keeps breaking / placing
-    this.breakTimer = this.repeat(it.breakHeld, this.wasBreak, this.breakTimer, dt, () => this.breakBlock());
-    this.placeTimer = this.repeat(it.placeHeld, this.wasPlace, this.placeTimer, dt, () => this.placeBlock());
-    this.wasBreak = it.breakHeld; this.wasPlace = it.placeHeld;
+    if (it !== NO_INPUT) {
+      this.breakTimer = this.repeat(it.breakHeld, this.wasBreak, this.breakTimer, dt, () => this.breakBlock());
+      this.placeTimer = this.repeat(it.placeHeld, this.wasPlace, this.placeTimer, dt, () => this.placeBlock());
+      this.wasBreak = it.breakHeld; this.wasPlace = it.placeHeld;
+    }
 
     this.updateAvatar(dt);
   }
@@ -1261,10 +1631,14 @@ class Player {
     a.armL.rotation.x = -sw; a.armR.rotation.x = sw;
   }
   updateHighlight() {
-    const hit = playing ? pickBlock(this.camera) : null;
+    const hit = playing && this.bagCursor === null ? pickBlock(this.camera) : null;
     this.highlight.visible = !!hit;
-    if (hit) this.highlight.position.set(hit.x + 0.5, hit.y + 0.5, hit.z + 0.5);
-    this.hud.message = this.input.message();
+    if (hit) {
+      const [w, h] = { cube: [1, 1], cross: [0.72, 0.85], flat: [0.8, 0.12] }[BLOCKS[hit.id].shape];
+      this.highlight.scale.set(w, h, w);
+      this.highlight.position.set(hit.x + 0.5, hit.y + h / 2, hit.z + 0.5);
+    }
+    this.hud.message = this.bagCursor === null ? this.input.message() : null;
   }
 }
 
@@ -1373,7 +1747,7 @@ function saveWorld() {
     for (const p of players) savedSlots[p.slot] = p.snapshot();
     localStorage.setItem(SAVE_KEY, JSON.stringify({
       size: [SX, SY, SZ], data: bytesToB64(Uint8Array.from(rle)),
-      players: savedSlots, home: [home.x, home.y, home.z],
+      players: savedSlots, home: [home.x, home.y, home.z], finds: 1,
     }));
     worldDirty = false;
   } catch (e) {
@@ -1396,6 +1770,7 @@ function loadWorld() {
     }
     if (o !== out.length) return false;
     blocks = out;
+    if (!s.finds) scatterFinds(mulberry32((Math.random() * 1e9) | 0));   // saved before there were finds
     home.set(...s.home);
     if (s.players) Object.assign(savedSlots, s.players);
     else if (s.player) savedSlots[0] = [...s.player.slice(0, 6), s.selected || 0];   // a single-player save
@@ -1497,6 +1872,7 @@ function requestLock() {
 function pause() {
   playing = false;
   keyboard.reset();
+  for (const p of players) if (p.bagCursor !== null) p.closeBag();
   $('play').textContent = 'Keep playing!';
   $('tagline').textContent = 'Taking a break 😊';
   showPage('main');
@@ -1551,6 +1927,8 @@ addEventListener('keydown', e => {
   if (/^Digit\d$/.test(e.code)) { const n = +e.code.slice(5); keyboard.actions.push(n === 0 ? 9 : n - 1); }
   if (e.code === 'KeyF') keyboard.actions.push('fly');
   if (e.code === 'KeyH') keyboard.actions.push('home');
+  if (e.code === 'KeyE') keyboard.actions.push('bag');
+  if (['Space', 'Enter', 'NumpadEnter'].includes(e.code)) keyboard.actions.push('ok');
 });
 addEventListener('keyup', e => { keyboard.keys[e.code] = false; });
 addEventListener('blur', () => { keyboard.keys = {}; keyboard.buttons = [false, false, false]; });
@@ -1613,7 +1991,9 @@ function frame() {
 frame();
 
 // debug/test hook
-window.easycraft = { players, keyboard, Pads, PadInput, addPlayer, removePlayer, startPlaying, pause, newWorld, getBlock, B };
+window.easycraft = {
+  players, keyboard, Pads, PadInput, addPlayer, removePlayer, startPlaying, pause, newWorld, getBlock, changeBlock, B, BLOCKS,
+};
 </script>
 <script>
   // Shown only if the game script failed to start (e.g. vendor/three/three.min.js is missing,

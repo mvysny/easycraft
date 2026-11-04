@@ -3,8 +3,9 @@
 ## What this is
 
 EasyCraft is a block-building game for young kids that runs in a web browser: walk around a
-small island, take blocks away and build with twenty kinds of block. There are no monsters, no
-damage and nothing to install — double-click `index.html` and play.
+small island, take blocks away and build with twenty kinds of block, and find flowers, shells,
+apples and gems to keep in your bag. There are no monsters, no damage and nothing to install —
+double-click `index.html` and play.
 
 ## Promises
 
@@ -34,7 +35,7 @@ Every fact lives in exactly one of these; the others link to it.
 
 ## Module map
 
-- `index.html` — the whole game: page, styles, textures, world, mesher, player, saving.
+- `index.html` — the whole game: page, styles, textures, world, mesher, player, bag, saving.
 - `vendor/three/` — three.js 0.160.1 `three.min.js`, the classic global-`THREE` build, and its MIT licence.
 - `design/` — the lazy design docs and the doc-layer tripwire.
 

@@ -24,3 +24,13 @@ current three.js behind a bundler or a local server: either is a build or an ins
 nobody copying the folder to a child's laptop will do. The cost we carry: three.js is frozen at
 r160 and logs a deprecation warning on load; moving past it means bundling `three.module.js`
 into a classic script ourselves.
+
+## D_endless_blocks — Why are the building blocks endless when the finds are counted?
+
+**Gentle for young kids**: running out of grass halfway through a house is a punishment, and
+fetching more is a chore before the fun. So the twenty building blocks stay a free palette, and
+only the finds — flowers, shells, apples, gems — are counted in a player's bag: they are the
+treasure hunt, and a gem means something because it ran out. Why not count everything, like a
+survival game: gold, glass and the colours would need a way to be made, which is crafting, a
+menu-heavy game of its own. Why not a sticker collection you cannot place: building with what you
+found is the reward. Reversing this means a starter kit, crafting and a much fuller bag screen.

@@ -29,3 +29,8 @@ world** in the menu starts over.
 
 The game is `index.html` plus the `vendor/` folder beside it; copy both. three.js (MIT, its
 licence in `vendor/three/LICENSE`) is the only third-party code.
+
+## See also
+
+- [Simplecraft](https://vesanieminen.github.io/Simplecraft/) — a similar block-building game
+  that runs in the browser.

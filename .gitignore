@@ -1,0 +1,9 @@
+# IDE metadata
+.idea/
+.project
+.classpath
+.settings/
+bin/
+
+# Playwright MCP snapshots and console logs
+.playwright-mcp/

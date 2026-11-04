@@ -6,7 +6,9 @@ damage and nothing to install — double-click `index.html` and play.
 
 ## Playing
 
-Open `index.html` in a browser (Chrome, Firefox, Edge or Safari); no internet is needed. Click
+**Play it online: https://mvysny.github.io/easycraft/**
+
+Or open `index.html` in a browser (Chrome, Firefox, Edge or Safari); no internet is needed. Click
 **Play!**, then:
 
 | Key | Does |

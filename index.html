@@ -10,12 +10,11 @@
 <style>
   :root {
     --ink: #1d2b3a;
-    --card: rgba(255, 255, 255, 0.94);
+    --card: rgba(255, 255, 255, 0.95);
     --green: #4cc35a;
     --green-dark: #2e7d32;
     --sun: #ffb703;
     --sun-dark: #c77f00;
-    --slot: min(48px, calc((100vw - 110px) / 20));
   }
   html, body {
     margin: 0; height: 100%; overflow: hidden;
@@ -25,93 +24,123 @@
   }
   canvas#game { display: block; }
 
+  /* ---- menu ---- */
   #overlay {
     position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
     background: rgba(40, 100, 170, 0.35); backdrop-filter: blur(3px);
     z-index: 10; padding: 16px; box-sizing: border-box;
   }
-  #overlay.hidden { display: none; }
+  #overlay.hidden, .page.hidden { display: none; }
   .card {
-    background: var(--card); border-radius: 28px; padding: 24px 32px 28px;
-    max-width: 560px; width: 100%; box-sizing: border-box;
+    background: var(--card); border-radius: 28px; padding: 22px 30px 24px;
+    max-width: 600px; width: 100%; box-sizing: border-box;
     box-shadow: 0 10px 0 rgba(0, 0, 0, 0.15); text-align: center; color: var(--ink);
     max-height: calc(100vh - 32px); overflow: auto;
   }
   h1 {
-    font-size: clamp(44px, 10vw, 72px); margin: 0; line-height: 1.05; font-weight: 700;
+    font-size: clamp(44px, 10vw, 68px); margin: 0; line-height: 1.05; font-weight: 700;
     color: var(--green); letter-spacing: 2px;
     text-shadow: 0 5px 0 var(--green-dark), 0 9px 12px rgba(0, 0, 0, 0.2);
   }
   h1 .b { color: var(--sun); text-shadow: 0 5px 0 var(--sun-dark), 0 9px 12px rgba(0, 0, 0, 0.2); }
-  .tagline { margin: 10px 0 0; font-size: 18px; color: #4a5b6c; }
-  .controls {
-    display: grid; grid-template-columns: auto 1fr; gap: 7px 14px; align-items: center;
-    text-align: left; margin: 18px auto 22px; max-width: 430px; font-size: 17px;
-  }
-  .controls > div:nth-child(odd) { text-align: right; white-space: nowrap; }
-  .key {
-    display: inline-block; min-width: 14px; text-align: center;
-    background: #eef3f8; border: 2px solid #c9d4df; border-bottom-width: 4px; border-radius: 8px;
-    padding: 0 7px; font-weight: 600; font-size: 15px; line-height: 22px;
+  h2 { margin: 0 0 14px; font-size: 34px; }
+  .tagline { margin: 8px 0 0; font-size: 18px; color: #4a5b6c; }
+  .hint { margin: 14px 0 0; font-size: 15px; color: #4a5b6c; }
+  table.controls { margin: 14px auto 18px; border-collapse: collapse; font-size: 15px; text-align: left; }
+  table.controls th { font-weight: 600; padding: 0 10px 4px; color: #4a5b6c; }
+  table.controls td { padding: 2px 10px; white-space: nowrap; }
+  table.controls td:first-child { text-align: right; color: #4a5b6c; }
+  kbd {
+    display: inline-block; min-width: 14px; text-align: center; font: inherit; font-size: 13px; font-weight: 600;
+    background: #eef3f8; border: 2px solid #c9d4df; border-bottom-width: 4px; border-radius: 7px;
+    padding: 0 6px; line-height: 19px; margin: 0 1px;
   }
   .btn {
-    font: inherit; font-size: 30px; font-weight: 700; padding: 12px 54px;
+    font: inherit; font-size: 30px; font-weight: 700; padding: 10px 54px;
     border: none; border-radius: 18px; background: var(--sun); color: #3a2600;
     box-shadow: 0 6px 0 var(--sun-dark); cursor: pointer;
   }
   .btn:hover { filter: brightness(1.06); }
   .btn:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--sun-dark); }
   .btn.small {
-    font-size: 17px; font-weight: 600; padding: 8px 20px; margin-top: 18px;
+    font-size: 17px; font-weight: 600; padding: 8px 18px;
     background: #e8eef5; color: #2b3a4a; box-shadow: 0 5px 0 #b9c4d0;
   }
   .btn.small:active { box-shadow: 0 1px 0 #b9c4d0; }
-
-  #crosshair {
-    position: fixed; left: 50%; top: 50%; width: 22px; height: 22px;
-    transform: translate(-50%, -50%); pointer-events: none; z-index: 5;
+  .row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 18px; }
+  .chip {
+    display: inline-block; width: 24px; height: 24px; line-height: 24px; border-radius: 50%;
+    background: var(--pc); font-size: 13px; margin-left: 2px; vertical-align: middle;
   }
-  #crosshair::before, #crosshair::after {
+
+  /* players page */
+  #slots { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 4px; }
+  .pcard {
+    border: 4px solid var(--pc); border-radius: 18px; padding: 12px; min-height: 104px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+    background: #fff; box-sizing: border-box; min-width: 0;
+  }
+  .pcard.empty { border-style: dashed; background: #f6f9fc; }
+  .pname { font-size: 22px; font-weight: 700; color: var(--pc); }
+  .pcard.empty .pname { opacity: 0.6; }
+  .pinput { font-size: 16px; }
+  .pid { font-size: 11px; color: #7a8a9a; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pcard .btn.small { font-size: 14px; padding: 4px 12px; box-shadow: 0 3px 0 #b9c4d0; }
+
+  /* ---- one HUD per player, laid over that player's part of the screen ---- */
+  .hud {
+    position: fixed; pointer-events: none; z-index: 5; overflow: hidden; container-type: size;
+    --slot: min(48px, calc((100cqw - 100px) / 20));
+  }
+  .hud.split { box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.55); }
+  .hud .crosshair { position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; transform: translate(-50%, -50%); }
+  .hud .crosshair::before, .hud .crosshair::after {
     content: ''; position: absolute; background: #fff; border-radius: 2px;
     box-shadow: 0 0 0 1.5px rgba(0, 0, 0, 0.35);
   }
-  #crosshair::before { left: 9px; top: 0; width: 4px; height: 22px; }
-  #crosshair::after { left: 0; top: 9px; width: 22px; height: 4px; }
-
-  #hotbar {
-    position: fixed; left: 50%; bottom: 12px; transform: translateX(-50%);
-    display: flex; gap: 3px; padding: 6px; z-index: 5;
-    background: rgba(0, 0, 0, 0.35); border-radius: 16px;
+  .hud .crosshair::before { left: 9px; top: 0; width: 4px; height: 22px; }
+  .hud .crosshair::after { left: 0; top: 9px; width: 22px; height: 4px; }
+  .hud .top { position: absolute; top: 10px; left: 10px; display: flex; gap: 8px; align-items: center; }
+  .hud .tag {
+    display: none; background: var(--pc); color: #fff; font-weight: 700; font-size: 17px;
+    border-radius: 10px; padding: 2px 12px; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
   }
-  .slot {
-    width: var(--slot); height: var(--slot); border-radius: 10px; position: relative;
-    background: rgba(255, 255, 255, 0.14); border: 3px solid transparent; box-sizing: border-box;
-    cursor: pointer; transition: transform 0.12s;
+  .hud.split .tag { display: block; }
+  .hud .badge {
+    display: none; background: rgba(255, 255, 255, 0.85); color: var(--ink);
+    border-radius: 10px; padding: 3px 12px; font-size: 16px; font-weight: 600;
   }
-  .slot.sel { border-color: #fff; background: rgba(255, 255, 255, 0.45); transform: translateY(-7px) scale(1.08); }
-  .slot canvas { width: 100%; height: 100%; display: block; }
-  .slot span {
-    position: absolute; top: 0; left: 3px; font-size: 11px; font-weight: 600; color: #fff;
-    text-shadow: 0 1px 2px #000;
+  .hud .badge.show { display: block; }
+  .hud .help {
+    position: absolute; top: 12px; right: 12px; color: #fff; font-size: 14px;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
   }
-
-  #toast {
-    position: fixed; left: 50%; bottom: calc(var(--slot) + 44px); transform: translateX(-50%);
-    color: #fff; font-size: 28px; font-weight: 600; z-index: 5; pointer-events: none;
+  .hud .hotbar {
+    position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%);
+    display: flex; gap: 2px; padding: 5px; background: rgba(0, 0, 0, 0.35); border-radius: 14px;
+  }
+  .hud .slot {
+    width: var(--slot); height: var(--slot); border-radius: 9px; position: relative; box-sizing: border-box;
+    background: rgba(255, 255, 255, 0.14); border: 3px solid transparent; transition: transform 0.12s;
+  }
+  .hud .slot.sel { border-color: #fff; background: rgba(255, 255, 255, 0.45); transform: translateY(-6px) scale(1.08); }
+  .hud .slot img { width: 100%; height: 100%; display: block; }
+  .hud .slot span { position: absolute; top: 0; left: 3px; font-size: 11px; font-weight: 600; color: #fff; text-shadow: 0 1px 2px #000; }
+  .hud .toast {
+    position: absolute; left: 50%; bottom: calc(var(--slot) + 36px); transform: translateX(-50%);
+    color: #fff; font-size: clamp(16px, 4cqw, 28px); font-weight: 600; white-space: nowrap;
     text-shadow: 0 2px 0 rgba(0, 0, 0, 0.45), 0 0 10px rgba(0, 0, 0, 0.35);
     opacity: 0; transition: opacity 0.35s;
   }
-  #toast.show { opacity: 1; transition: none; }
-  #badge {
-    position: fixed; top: 14px; left: 14px; z-index: 5; pointer-events: none;
-    background: rgba(255, 255, 255, 0.85); color: var(--ink); border-radius: 12px;
-    padding: 6px 14px; font-size: 18px; font-weight: 600; display: none;
+  .hud .toast.show { opacity: 1; transition: none; }
+  .hud .msg {
+    position: absolute; left: 50%; top: 60%; transform: translateX(-50%); display: none;
+    background: rgba(0, 0, 0, 0.55); color: #fff; padding: 8px 16px; border-radius: 12px;
+    font-size: clamp(14px, 3cqw, 18px); white-space: nowrap;
   }
-  #badge.show { display: block; }
-  #help {
-    position: fixed; top: 14px; right: 14px; z-index: 5; pointer-events: none;
-    color: #fff; font-size: 15px; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); text-align: right;
-  }
+  .hud .msg.show { display: block; }
+
   #error {
     position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
     background: #8fd3ff; z-index: 20; font-size: 22px; color: var(--ink); text-align: center; padding: 24px;
@@ -119,29 +148,38 @@
 </style>
 </head>
 <body>
-<div id="crosshair"></div>
-<div id="badge">✈️ Flying!</div>
-<div id="help">Esc = menu</div>
-<div id="toast"></div>
-<div id="hotbar"></div>
-
 <div id="overlay">
-  <div class="card">
+  <div class="card page" id="page-main">
     <h1>Easy<span class="b">Craft</span></h1>
     <p class="tagline" id="tagline">Build anything you can imagine!</p>
-    <div class="controls">
-      <div>🖱️ Mouse</div><div>look around</div>
-      <div><span class="key">W</span> <span class="key">A</span> <span class="key">S</span> <span class="key">D</span> / <span class="key">↑</span> <span class="key">↓</span></div><div>walk</div>
-      <div><span class="key">←</span> <span class="key">→</span></div><div>turn</div>
-      <div><span class="key">Space</span></div><div>jump (or swim up)</div>
-      <div>Left click</div><div>⛏️ take a block away</div>
-      <div>Right click</div><div>🧱 put a block down</div>
-      <div><span class="key">1</span>–<span class="key">0</span> / wheel</div><div>pick a block</div>
-      <div><span class="key">F</span></div><div>✈️ fly on/off (<span class="key">Shift</span> = down)</div>
-      <div><span class="key">H</span></div><div>🏠 go back home</div>
+    <table class="controls">
+      <thead><tr><th></th><th>⌨️ Keyboard</th><th>🎮 Controller</th></tr></thead>
+      <tbody>
+        <tr><td>Look around</td><td>Mouse, <kbd>←</kbd><kbd>→</kbd></td><td>Right stick</td></tr>
+        <tr><td>Walk</td><td><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> <kbd>↑</kbd><kbd>↓</kbd></td><td>Left stick</td></tr>
+        <tr><td>Jump, swim up</td><td><kbd>Space</kbd></td><td><kbd>A</kbd></td></tr>
+        <tr><td>⛏️ Take a block</td><td>Left click</td><td><kbd>RT</kbd></td></tr>
+        <tr><td>🧱 Put a block</td><td>Right click</td><td><kbd>LT</kbd></td></tr>
+        <tr><td>Pick a block</td><td><kbd>1</kbd>–<kbd>0</kbd>, wheel</td><td><kbd>LB</kbd><kbd>RB</kbd></td></tr>
+        <tr><td>✈️ Fly on/off</td><td><kbd>F</kbd></td><td><kbd>Y</kbd></td></tr>
+        <tr><td>Fly down</td><td><kbd>Shift</kbd></td><td><kbd>B</kbd></td></tr>
+        <tr><td>🏠 Go home</td><td><kbd>H</kbd></td><td><kbd>Back</kbd></td></tr>
+        <tr><td>Menu</td><td><kbd>Esc</kbd></td><td><kbd>Start</kbd></td></tr>
+      </tbody>
+    </table>
+    <button class="btn" id="play">Play!</button>
+    <div class="row">
+      <button class="btn small" id="players-btn">👥 Players <span id="chips"></span></button>
+      <button class="btn small" id="newworld">🌱 New world</button>
     </div>
-    <button class="btn" id="play">Play!</button><br>
-    <button class="btn small" id="newworld">🌱 Make a new world</button>
+    <p class="hint">🎮 Got a controller? Press <kbd>A</kbd> / <kbd>✕</kbd> on it to join in.</p>
+  </div>
+
+  <div class="card page hidden" id="page-players">
+    <h2>Who's playing?</h2>
+    <div id="slots"></div>
+    <p class="hint" id="padinfo"></p>
+    <div class="row"><button class="btn" id="players-done">Done</button></div>
   </div>
 </div>
 
@@ -161,6 +199,8 @@ const CHUNK = 16;                   // chunk size (x/z) for meshing
 const WATER = 8;                    // sea level
 const REACH = 6;                    // how far you can reach, in blocks
 const SAVE_KEY = 'easycraft-world-v1';
+const MAX_PLAYERS = 4;
+const PLAYER_COLORS = ['#3b82f6', '#ef4444', '#22c55e', '#eab308'];
 
 // ---------------------------------------------------------------------------
 // Tiny seeded random
@@ -434,21 +474,20 @@ const UNDERWATER = new THREE.Color('#2a6fc0');
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
+renderer.setScissorTest(true);
 renderer.domElement.id = 'game';
 document.body.prepend(renderer.domElement);
+const canvas = renderer.domElement;
 
 const scene = new THREE.Scene();
 scene.background = SKY.clone();
 scene.fog = new THREE.Fog(SKY.clone(), 45, 130);
 
-const camera = new THREE.PerspectiveCamera(72, innerWidth / innerHeight, 0.05, 600);
-camera.rotation.order = 'YXZ';
-
-addEventListener('resize', () => {
-  renderer.setSize(innerWidth, innerHeight);
-  camera.aspect = innerWidth / innerHeight;
-  camera.updateProjectionMatrix();
-});
+// Three.js layers decide which camera sees what. Layer 0 is the shared world. Player `slot`'s
+// block outline sits on HIGHLIGHT_LAYER + slot (only their camera sees it), and their body on
+// AVATAR_LAYER + slot (every camera but their own sees it).
+const HIGHLIGHT_LAYER = 1, AVATAR_LAYER = 5;
+function setLayer(obj, layer) { obj.traverse(o => o.layers.set(layer)); }
 
 const atlasTex = new THREE.CanvasTexture(atlasCanvas);
 atlasTex.magFilter = THREE.NearestFilter;
@@ -633,13 +672,77 @@ sunGlow.position.z = -0.5;
 sun.add(sunGlow);
 scene.add(sun);
 
-// block highlight
-const highlight = new THREE.LineSegments(
-  new THREE.EdgesGeometry(new THREE.BoxGeometry(1.004, 1.004, 1.004)),
-  new THREE.LineBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.55 }),
-);
-highlight.visible = false;
-scene.add(highlight);
+const highlightGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(1.004, 1.004, 1.004));
+const highlightMat = new THREE.LineBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.55 });
+
+// ---------------------------------------------------------------------------
+// Player bodies: a blocky figure in the player's colour, with a name tag that
+// shows through walls so kids can find each other.
+// ---------------------------------------------------------------------------
+const avatarMat = new THREE.MeshBasicMaterial({ vertexColors: true });
+function shadedBox(w, h, d, color) {
+  const g = new THREE.BoxGeometry(w, h, d);
+  const c = new THREE.Color(color);
+  const shade = [0.8, 0.8, 1, 0.55, 0.68, 0.68];   // BoxGeometry face order: +x -x +y -y +z -z
+  const cols = [];
+  for (let f = 0; f < 6; f++) {
+    const k = Math.pow(shade[f], 2.2);
+    for (let v = 0; v < 4; v++) cols.push(c.r * k, c.g * k, c.b * k);
+  }
+  g.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
+  return new THREE.Mesh(g, avatarMat);
+}
+function makeAvatar(slot) {
+  const color = PLAYER_COLORS[slot];
+  const root = new THREE.Group();
+  const limb = (w, h, d, col, x, y) => {
+    const pivot = new THREE.Group();
+    pivot.position.set(x, y, 0);
+    const m = shadedBox(w, h, d, col);
+    m.position.y = -h / 2;
+    pivot.add(m);
+    root.add(pivot);
+    return pivot;
+  };
+  const legL = limb(0.26, 0.75, 0.28, '#2b3f7a', -0.14, 0.75);
+  const legR = limb(0.26, 0.75, 0.28, '#2b3f7a', 0.14, 0.75);
+  const body = shadedBox(0.6, 0.72, 0.32, color);
+  body.position.y = 1.11;
+  root.add(body);
+  const armL = limb(0.2, 0.7, 0.22, color, -0.41, 1.45);
+  const armR = limb(0.2, 0.7, 0.22, color, 0.41, 1.45);
+  const head = new THREE.Group();
+  head.position.y = 1.47;
+  root.add(head);
+  const skull = shadedBox(0.5, 0.5, 0.5, '#f2c79b');
+  skull.position.y = 0.25;
+  const hair = shadedBox(0.54, 0.14, 0.54, '#5a3a22');
+  hair.position.y = 0.49;
+  head.add(skull, hair);
+  for (const x of [-0.11, 0.11]) {   // the face looks along -z, like the camera
+    const eye = shadedBox(0.08, 0.08, 0.02, '#1d2b3a');
+    eye.position.set(x, 0.27, -0.255);
+    head.add(eye);
+  }
+  const tagCanvas = document.createElement('canvas');
+  tagCanvas.width = 128; tagCanvas.height = 64;
+  const g = tagCanvas.getContext('2d');
+  g.fillStyle = color;
+  g.beginPath(); g.roundRect(4, 4, 120, 56, 18); g.fill();
+  g.fillStyle = '#fff'; g.font = 'bold 40px Fredoka, system-ui, sans-serif';
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText(`P${slot + 1}`, 64, 34);
+  const tagTex = new THREE.CanvasTexture(tagCanvas);
+  tagTex.colorSpace = THREE.SRGBColorSpace;
+  // the same size on screen near or far, so a friend far away is still easy to spot
+  const tag = new THREE.Sprite(new THREE.SpriteMaterial({ map: tagTex, depthTest: false, fog: false, sizeAttenuation: false }));
+  tag.position.y = 2.3;
+  tag.scale.set(0.12, 0.06, 1);
+  tag.renderOrder = 10;
+  root.add(tag);
+  setLayer(root, AVATAR_LAYER + slot);
+  return { root, head, legL, legR, armL, armR, tag };
+}
 
 // ---------------------------------------------------------------------------
 // Sounds (tiny synth, no files)
@@ -720,116 +823,10 @@ function updateParticles(dt) {
 }
 
 // ---------------------------------------------------------------------------
-// Player
-// ---------------------------------------------------------------------------
-const PW = 0.3, PH = 1.7, EYE = 1.55;
-const GRAVITY = 25, JUMP = 8.6, WALK = 4.6, FLY = 10;
-const player = {
-  pos: new THREE.Vector3(), vel: new THREE.Vector3(),
-  yaw: 0, pitch: -0.15, onGround: false, flying: false,
-};
-let home = new THREE.Vector3();
-
-function collides(px, py, pz) {
-  const x0 = Math.floor(px - PW), x1 = Math.floor(px + PW - 1e-6);
-  const y0 = Math.floor(py), y1 = Math.floor(py + PH - 1e-6);
-  const z0 = Math.floor(pz - PW), z1 = Math.floor(pz + PW - 1e-6);
-  for (let y = y0; y <= y1; y++) for (let z = z0; z <= z1; z++) for (let x = x0; x <= x1; x++) {
-    if (x < 0 || z < 0 || x >= SX || z >= SZ || y < 0) return true;   // invisible walls at the world edge
-    if (y < SY && isSolid(blocks[index(x, y, z)])) return true;
-  }
-  return false;
-}
-function headInWater() { return BLOCKS[getBlock(Math.floor(camera.position.x), Math.floor(camera.position.y), Math.floor(camera.position.z))]?.liquid; }
-function bodyInWater() {
-  const p = player.pos;
-  return !!BLOCKS[getBlock(Math.floor(p.x), Math.floor(p.y + 0.4), Math.floor(p.z))]?.liquid;
-}
-
-function goHome() {
-  const x = Math.floor(home.x), z = Math.floor(home.z);
-  player.pos.set(x + 0.5, surfaceY(x, z), z + 0.5);
-  player.vel.set(0, 0, 0);
-}
-function findHome() {
-  // look for dry land near the middle
-  const cx = SX >> 1, cz = SZ >> 1;
-  for (let r = 0; r < SX / 2; r++) for (let dz = -r; dz <= r; dz++) for (let dx = -r; dx <= r; dx++) {
-    const x = cx + dx, z = cz + dz, y = surfaceY(x, z);
-    if (y > WATER + 1 && getBlock(x, y - 1, z) !== B.leaves && !collides(x + 0.5, y, z + 0.5)) {
-      home.set(x + 0.5, y, z + 0.5); return;
-    }
-  }
-  home.set(cx + 0.5, SY - 2, cz + 0.5);
-}
-
-const keys = {};
-function updatePlayer(dt) {
-  if (keys.ArrowLeft) player.yaw += 2.3 * dt;
-  if (keys.ArrowRight) player.yaw -= 2.3 * dt;
-  const fwd = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0);
-  const side = (keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0);
-  const sin = Math.sin(player.yaw), cos = Math.cos(player.yaw);
-  let mx = -sin * fwd + cos * side, mz = -cos * fwd - sin * side;
-  const len = Math.hypot(mx, mz);
-  if (len > 0) { mx /= len; mz /= len; }
-
-  const swim = !player.flying && bodyInWater();
-  const speed = player.flying ? FLY : swim ? 3.2 : WALK;
-  const v = player.vel;
-  v.x = mx * speed; v.z = mz * speed;
-  const down = keys.ShiftLeft || keys.ShiftRight;
-  if (player.flying) {
-    v.y = (keys.Space ? 8 : 0) - (down ? 8 : 0);
-  } else if (swim) {
-    v.y = Math.max(v.y - 12 * dt, -2.5);
-    if (keys.Space) v.y = 4.2;
-  } else {
-    v.y = Math.max(v.y - GRAVITY * dt, -30);
-    if (keys.Space && player.onGround) v.y = JUMP;
-  }
-
-  // move in small steps, one axis at a time
-  const steps = Math.max(1, Math.ceil(dt / 0.016));
-  const h = dt / steps;
-  const p = player.pos;
-  for (let s = 0; s < steps; s++) {
-    let bumped = false;
-    p.x += v.x * h;
-    if (collides(p.x, p.y, p.z)) {
-      p.x = v.x > 0 ? Math.floor(p.x + PW) - PW - 0.001 : Math.floor(p.x - PW) + 1 + PW + 0.001;
-      bumped = true;
-    }
-    p.z += v.z * h;
-    if (collides(p.x, p.y, p.z)) {
-      p.z = v.z > 0 ? Math.floor(p.z + PW) - PW - 0.001 : Math.floor(p.z - PW) + 1 + PW + 0.001;
-      bumped = true;
-    }
-    p.y += v.y * h;
-    const wasOnGround = player.onGround;
-    if (collides(p.x, p.y, p.z)) {
-      if (v.y < 0) p.y = Math.floor(p.y) + 1;
-      else p.y = Math.floor(p.y + PH) - PH - 0.001;
-      v.y = 0;
-    }
-    player.onGround = v.y <= 0 && collides(p.x, p.y - 0.02, p.z);
-    // auto-jump up single steps, so little ones don't get stuck
-    if (bumped && !player.flying && (wasOnGround || swim) && len > 0
-        && !collides(p.x + mx * 0.45, p.y + 1.05, p.z + mz * 0.45)) {
-      v.y = swim ? 6.5 : JUMP;
-    }
-  }
-  if (p.y < -5) goHome();
-
-  camera.position.set(p.x, p.y + EYE, p.z);
-  camera.rotation.set(player.pitch, player.yaw, 0);
-}
-
-// ---------------------------------------------------------------------------
-// Looking at blocks (voxel ray march)
+// Looking at blocks (voxel ray march from a camera)
 // ---------------------------------------------------------------------------
 const rayDir = new THREE.Vector3();
-function pickBlock() {
+function pickBlock(camera) {
   camera.getWorldDirection(rayDir);
   const o = camera.position;
   let x = Math.floor(o.x), y = Math.floor(o.y), z = Math.floor(o.z);
@@ -855,45 +852,143 @@ function pickBlock() {
   return water;
 }
 
-let selected = 0;
 let worldDirty = false;
 function changeBlock(x, y, z, id) {
   setBlockRaw(x, y, z, id);
   markDirtyAround(x, z);
   worldDirty = true;
 }
-function breakBlock() {
-  const hit = pickBlock();
-  if (!hit) return;
-  const b = BLOCKS[hit.id];
-  if (b.unbreakable) { playPlace(0.4); return; }
-  changeBlock(hit.x, hit.y, hit.z, 0);
-  burst(hit.x, hit.y, hit.z, hit.id);
-  playBreak(b.pitch);
-}
-function placeBlock() {
-  const hit = pickBlock();
-  if (!hit) return;
-  const id = HOTBAR[selected];
-  const x = hit.x + hit.n[0], y = hit.y + hit.n[1], z = hit.z + hit.n[2];
-  if (!inBounds(x, y, z)) return;
-  const cur = getBlock(x, y, z);
-  if (cur && !BLOCKS[cur].liquid) return;
-  if (isSolid(id)) {
-    const p = player.pos;
-    const overlaps = x < p.x + PW && x + 1 > p.x - PW && y < p.y + PH && y + 1 > p.y && z < p.z + PW && z + 1 > p.z - PW;
-    if (overlaps) return;
+
+// ---------------------------------------------------------------------------
+// Player physics helpers
+// ---------------------------------------------------------------------------
+const PW = 0.3, PH = 1.7, EYE = 1.55;
+const GRAVITY = 25, JUMP = 8.6, WALK = 4.6, FLY = 10;
+let home = new THREE.Vector3();
+
+function collides(px, py, pz) {
+  const x0 = Math.floor(px - PW), x1 = Math.floor(px + PW - 1e-6);
+  const y0 = Math.floor(py), y1 = Math.floor(py + PH - 1e-6);
+  const z0 = Math.floor(pz - PW), z1 = Math.floor(pz + PW - 1e-6);
+  for (let y = y0; y <= y1; y++) for (let z = z0; z <= z1; z++) for (let x = x0; x <= x1; x++) {
+    if (x < 0 || z < 0 || x >= SX || z >= SZ || y < 0) return true;   // invisible walls at the world edge
+    if (y < SY && isSolid(blocks[index(x, y, z)])) return true;
   }
-  changeBlock(x, y, z, id);
-  playPlace(BLOCKS[id].pitch);
+  return false;
+}
+function inWater(v) { return !!BLOCKS[getBlock(Math.floor(v.x), Math.floor(v.y), Math.floor(v.z))]?.liquid; }
+
+function findHome() {
+  // look for dry land near the middle
+  const cx = SX >> 1, cz = SZ >> 1;
+  for (let r = 0; r < SX / 2; r++) for (let dz = -r; dz <= r; dz++) for (let dx = -r; dx <= r; dx++) {
+    const x = cx + dx, z = cz + dz, y = surfaceY(x, z);
+    if (y > WATER + 1 && getBlock(x, y - 1, z) !== B.leaves && !collides(x + 0.5, y, z + 0.5)) {
+      home.set(x + 0.5, y, z + 0.5); return;
+    }
+  }
+  home.set(cx + 0.5, SY - 2, cz + 0.5);
 }
 
 // ---------------------------------------------------------------------------
-// Hotbar UI
+// Input. Each player reads one input source per frame into the same shape:
+// movement, look deltas, held buttons and one-shot actions.
 // ---------------------------------------------------------------------------
-const hotbarEl = document.getElementById('hotbar');
-const toastEl = document.getElementById('toast');
-let toastTimer = 0;
+const NO_INPUT = Object.freeze({
+  fwd: 0, side: 0, yaw: 0, pitch: 0, jump: false, down: false, breakHeld: false, placeHeld: false, actions: [],
+});
+
+let playing = false;
+let dragLook = false;   // fallback when the browser refuses pointer lock
+
+/** The one keyboard-and-mouse player's input; the DOM handlers further down feed it. */
+class KeyboardInput {
+  constructor() { this.reset(); }
+  get label() { return '⌨️ Keyboard & mouse'; }
+  get detail() { return ''; }
+  get menuKey() { return 'Esc'; }
+  reset() { this.keys = {}; this.buttons = [false, false, false]; this.actions = []; this.mdx = 0; this.mdy = 0; }
+  /** A hint for this player's screen, or null. */
+  message() {
+    return playing && !dragLook && document.pointerLockElement !== canvas ? '🖱️ Click here to look around with the mouse' : null;
+  }
+  read(dt) {
+    const k = this.keys;
+    const it = {
+      fwd: (k.KeyW || k.ArrowUp ? 1 : 0) - (k.KeyS || k.ArrowDown ? 1 : 0),
+      side: (k.KeyD ? 1 : 0) - (k.KeyA ? 1 : 0),
+      yaw: ((k.ArrowLeft ? 1 : 0) - (k.ArrowRight ? 1 : 0)) * 2.3 * dt - this.mdx * 0.0024,
+      pitch: -this.mdy * 0.0024,
+      jump: !!k.Space, down: !!(k.ShiftLeft || k.ShiftRight),
+      breakHeld: this.buttons[0], placeHeld: this.buttons[2],
+      actions: this.actions,
+    };
+    this.actions = []; this.mdx = 0; this.mdy = 0;
+    return it;
+  }
+}
+const keyboard = new KeyboardInput();
+
+// Gamepad buttons in the browser's "standard" layout (Xbox names; PlayStation: A=✕, B=○, X=□, Y=△).
+const PAD = { A: 0, B: 1, X: 2, Y: 3, LB: 4, RB: 5, LT: 6, RT: 7, BACK: 8, START: 9, LEFT: 14, RIGHT: 15 };
+/** Polls every connected gamepad once per frame, so "pressed" means "went down this frame". */
+const Pads = {
+  now: new Map(), prev: new Map(),
+  poll() {
+    this.prev = new Map([...this.now].map(([i, s]) => [i, s.down]));
+    this.now = new Map();
+    let list = [];
+    try { list = navigator.getGamepads ? navigator.getGamepads() : []; }
+    catch (e) { console.warn('Gamepads are not available', e); }
+    for (const pad of list) {
+      if (pad && pad.connected) this.now.set(pad.index, { pad, down: pad.buttons.map(b => b.pressed || b.value > 0.5) });
+    }
+  },
+  connected(i) { return this.now.has(i); },
+  id(i) { return this.now.get(i)?.pad.id ?? ''; },
+  down(i, b) { return !!this.now.get(i)?.down[b]; },
+  pressed(i, b) { return this.down(i, b) && !this.prev.get(i)?.[b]; },
+  axis(i, a) { return this.now.get(i)?.pad.axes[a] ?? 0; },
+  indices() { return [...this.now.keys()]; },
+};
+
+/** A controller player's input: one gamepad, by its browser index. */
+class PadInput {
+  constructor(index) { this.index = index; }
+  get label() { return `🎮 Controller ${this.index + 1}`; }
+  get detail() { return Pads.id(this.index); }
+  get menuKey() { return 'Start'; }
+  reset() {}
+  message() { return Pads.connected(this.index) ? null : '🎮 Controller unplugged! Plug it back in.'; }
+  read(dt) {
+    const i = this.index;
+    if (!Pads.connected(i)) return NO_INPUT;
+    const stick = (ax, ay) => {   // round dead zone, then rescale so movement starts from zero
+      const x = Pads.axis(i, ax), y = Pads.axis(i, ay), m = Math.hypot(x, y), DEAD = 0.18;
+      if (m < DEAD) return [0, 0];
+      const k = Math.min(1, (m - DEAD) / (1 - DEAD)) / m;
+      return [x * k, y * k];
+    };
+    const [lx, ly] = stick(0, 1), [rx, ry] = stick(2, 3);
+    const curve = v => v * Math.abs(v);   // fine aiming near the centre, fast turns at the edge
+    const actions = [];
+    if (Pads.pressed(i, PAD.Y)) actions.push('fly');
+    if (Pads.pressed(i, PAD.BACK)) actions.push('home');
+    if (Pads.pressed(i, PAD.LB) || Pads.pressed(i, PAD.LEFT)) actions.push('prev');
+    if (Pads.pressed(i, PAD.RB) || Pads.pressed(i, PAD.RIGHT)) actions.push('next');
+    return {
+      fwd: -ly, side: lx,
+      yaw: -curve(rx) * 3.0 * dt, pitch: -curve(ry) * 2.2 * dt,
+      jump: Pads.down(i, PAD.A), down: Pads.down(i, PAD.B),
+      breakHeld: Pads.down(i, PAD.RT), placeHeld: Pads.down(i, PAD.LT),
+      actions,
+    };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Player HUD: crosshair, hotbar, toasts — laid over the player's part of the screen.
+// ---------------------------------------------------------------------------
 function blockIcon(id) {
   const c = document.createElement('canvas');
   c.width = c.height = 48;
@@ -916,32 +1011,346 @@ function blockIcon(id) {
   face(b.side, 20 * k, 10 * k, 0, 22 * k, 4, 13, 0.18);   // left
   face(b.side, 20 * k, -10 * k, 0, 22 * k, 24, 23, 0.32); // right
   face(b.top, 20 * k, -10 * k, 20 * k, 10 * k, 4, 13, 0); // top
-  return c;
+  return c.toDataURL();
 }
-HOTBAR.forEach((id, i) => {
-  const slot = document.createElement('div');
-  slot.className = 'slot';
-  slot.title = BLOCKS[id].name;
-  slot.appendChild(blockIcon(id));
-  if (i < 10) { const s = document.createElement('span'); s.textContent = (i + 1) % 10; slot.appendChild(s); }
-  slot.addEventListener('mousedown', e => { e.stopPropagation(); select(i); });
-  hotbarEl.appendChild(slot);
-});
-function select(i, quiet) {
-  selected = (i + HOTBAR.length) % HOTBAR.length;
-  [...hotbarEl.children].forEach((el, j) => el.classList.toggle('sel', j === selected));
-  if (quiet) return;
-  toastEl.textContent = BLOCKS[HOTBAR[selected]].name;
-  toastEl.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toastEl.classList.remove('show'), 900);
+const ICONS = HOTBAR.map(blockIcon);
+
+class Hud {
+  constructor(slot, input) {
+    const el = this.el = document.createElement('div');
+    el.className = 'hud';
+    el.style.setProperty('--pc', PLAYER_COLORS[slot]);
+    el.innerHTML = `<div class="top"><div class="tag">P${slot + 1}</div><div class="badge">✈️ Flying!</div></div>
+      <div class="help">${input.menuKey} = menu</div>
+      <div class="crosshair"></div><div class="msg"></div><div class="toast"></div><div class="hotbar"></div>`;
+    const bar = el.querySelector('.hotbar');
+    HOTBAR.forEach((id, i) => {
+      const s = document.createElement('div');
+      s.className = 'slot';
+      const img = document.createElement('img');
+      img.src = ICONS[i]; img.alt = BLOCKS[id].name;
+      s.appendChild(img);
+      if (input === keyboard && i < 10) {
+        const n = document.createElement('span'); n.textContent = (i + 1) % 10; s.appendChild(n);
+      }
+      bar.appendChild(s);
+    });
+    this.slots = [...bar.children];
+    this.toastEl = el.querySelector('.toast');
+    this.badgeEl = el.querySelector('.badge');
+    this.msgEl = el.querySelector('.msg');
+    this.toastTimer = 0;
+    this.shownMessage = null;
+    document.body.appendChild(el);
+  }
+  /** Highlights hotbar slot `i`; `announce` also flashes the block's name. */
+  showSelected(i, announce) {
+    this.slots.forEach((el, j) => el.classList.toggle('sel', j === i));
+    if (!announce) return;
+    this.toastEl.textContent = BLOCKS[HOTBAR[i]].name;
+    this.toastEl.classList.add('show');
+    clearTimeout(this.toastTimer);
+    this.toastTimer = setTimeout(() => this.toastEl.classList.remove('show'), 900);
+  }
+  set flying(on) { this.badgeEl.classList.toggle('show', on); }
+  set message(text) {
+    if (text === this.shownMessage) return;
+    this.shownMessage = text;
+    this.msgEl.textContent = text || '';
+    this.msgEl.classList.toggle('show', !!text);
+  }
+  layout(r, split) {
+    Object.assign(this.el.style, { left: r.x + 'px', top: r.y + 'px', width: r.w + 'px', height: r.h + 'px' });
+    this.el.classList.toggle('split', split);
+  }
+  dispose() { clearTimeout(this.toastTimer); this.el.remove(); }
 }
 
-const badgeEl = document.getElementById('badge');
-function setFlying(on) {
-  player.flying = on;
-  player.vel.y = 0;
-  badgeEl.classList.toggle('show', on);
+// ---------------------------------------------------------------------------
+// Player: one person at the screen — body, camera, HUD, and one input source.
+// ---------------------------------------------------------------------------
+const players = [];     // sorted by slot, so Player 1 is always top-left
+const savedSlots = {};  // slot -> [x, y, z, yaw, pitch, flying, selected], survives leaving and saving
+
+class Player {
+  constructor(slot, input) {
+    this.slot = slot;
+    this.input = input;
+    this.pos = new THREE.Vector3();
+    this.vel = new THREE.Vector3();
+    this.yaw = Math.PI * 0.25; this.pitch = -0.15;
+    this.onGround = false; this.flying = false;
+    this.selected = 0;
+    this.walkPhase = 0; this.swing = 0;
+    this.breakTimer = 0; this.placeTimer = 0; this.wasBreak = false; this.wasPlace = false;
+    this.rect = { x: 0, y: 0, w: 1, h: 1 };
+
+    this.camera = new THREE.PerspectiveCamera(72, 1, 0.05, 600);
+    this.camera.rotation.order = 'YXZ';
+    this.camera.layers.enable(HIGHLIGHT_LAYER + slot);
+    for (let s = 0; s < MAX_PLAYERS; s++) if (s !== slot) this.camera.layers.enable(AVATAR_LAYER + s);
+    this.highlight = new THREE.LineSegments(highlightGeo, highlightMat);
+    this.highlight.visible = false;
+    setLayer(this.highlight, HIGHLIGHT_LAYER + slot);
+    this.avatar = makeAvatar(slot);
+    scene.add(this.highlight, this.avatar.root);
+    this.hud = new Hud(slot, input);
+
+    if (savedSlots[slot]) this.restore(savedSlots[slot]); else this.goHome();
+    this.select(this.selected, true);
+    this.syncCamera();
+    this.updateAvatar(0);
+  }
+
+  restore(s) {
+    this.pos.set(s[0], s[1], s[2]);
+    this.yaw = s[3]; this.pitch = s[4];
+    this.setFlying(!!s[5]);
+    this.selected = s[6] || 0;
+  }
+  snapshot() {
+    const p = this.pos;
+    return [p.x, p.y, p.z, this.yaw, this.pitch, this.flying ? 1 : 0, this.selected];
+  }
+  dispose() {
+    scene.remove(this.highlight, this.avatar.root);
+    this.avatar.tag.material.map.dispose();
+    this.avatar.tag.material.dispose();
+    this.hud.dispose();
+  }
+
+  goHome() {
+    // each player gets their own spot next to home, so nobody spawns inside someone else
+    const x = Math.min(SX - 1, Math.floor(home.x) + (this.slot % 2));
+    const z = Math.min(SZ - 1, Math.floor(home.z) + (this.slot >> 1));
+    this.pos.set(x + 0.5, surfaceY(x, z), z + 0.5);
+    this.vel.set(0, 0, 0);
+  }
+  setFlying(on) { this.flying = on; this.vel.y = 0; this.hud.flying = on; }
+  select(i, quiet) {
+    this.selected = (i % HOTBAR.length + HOTBAR.length) % HOTBAR.length;
+    this.hud.showSelected(this.selected, !quiet);
+  }
+  /** Does this player's body overlap block (x, y, z)? */
+  overlaps(x, y, z) {
+    const p = this.pos;
+    return x < p.x + PW && x + 1 > p.x - PW && y < p.y + PH && y + 1 > p.y && z < p.z + PW && z + 1 > p.z - PW;
+  }
+
+  breakBlock() {
+    const hit = pickBlock(this.camera);
+    if (!hit) return;
+    const b = BLOCKS[hit.id];
+    if (b.unbreakable) { playPlace(0.4); return; }
+    changeBlock(hit.x, hit.y, hit.z, 0);
+    burst(hit.x, hit.y, hit.z, hit.id);
+    playBreak(b.pitch);
+  }
+  placeBlock() {
+    const hit = pickBlock(this.camera);
+    if (!hit) return;
+    const id = HOTBAR[this.selected];
+    const x = hit.x + hit.n[0], y = hit.y + hit.n[1], z = hit.z + hit.n[2];
+    if (!inBounds(x, y, z)) return;
+    const cur = getBlock(x, y, z);
+    if (cur && !BLOCKS[cur].liquid) return;
+    if (isSolid(id) && players.some(p => p.overlaps(x, y, z))) return;
+    changeBlock(x, y, z, id);
+    playPlace(BLOCKS[id].pitch);
+  }
+
+  act(a) {
+    if (typeof a === 'number') this.select(a);
+    else if (a === 'fly') this.setFlying(!this.flying);
+    else if (a === 'home') this.goHome();
+    else if (a === 'next') this.select(this.selected + 1);
+    else if (a === 'prev') this.select(this.selected - 1);
+    else if (a === 'break') this.breakBlock();
+    else if (a === 'place') this.placeBlock();
+  }
+
+  update(dt) {
+    const it = this.input.read(dt);
+    this.yaw += it.yaw;
+    this.pitch = Math.max(-1.55, Math.min(1.55, this.pitch + it.pitch));
+    for (const a of it.actions) this.act(a);
+
+    // walking direction on the ground; a half-tilted stick walks at half speed
+    const mag = Math.min(1, Math.hypot(it.fwd, it.side));
+    const sin = Math.sin(this.yaw), cos = Math.cos(this.yaw);
+    let ux = -sin * it.fwd + cos * it.side, uz = -cos * it.fwd - sin * it.side;
+    const len = Math.hypot(ux, uz);
+    if (len > 0) { ux /= len; uz /= len; }
+
+    const p = this.pos, v = this.vel;
+    const swim = !this.flying && inWater({ x: p.x, y: p.y + 0.4, z: p.z });
+    const speed = (this.flying ? FLY : swim ? 3.2 : WALK) * mag;
+    v.x = ux * speed; v.z = uz * speed;
+    if (this.flying) {
+      v.y = (it.jump ? 8 : 0) - (it.down ? 8 : 0);
+    } else if (swim) {
+      v.y = Math.max(v.y - 12 * dt, -2.5);
+      if (it.jump) v.y = 4.2;
+    } else {
+      v.y = Math.max(v.y - GRAVITY * dt, -30);
+      if (it.jump && this.onGround) v.y = JUMP;
+    }
+
+    // move in small steps, one axis at a time
+    const steps = Math.max(1, Math.ceil(dt / 0.016));
+    const h = dt / steps;
+    for (let s = 0; s < steps; s++) {
+      let bumped = false;
+      p.x += v.x * h;
+      if (collides(p.x, p.y, p.z)) {
+        p.x = v.x > 0 ? Math.floor(p.x + PW) - PW - 0.001 : Math.floor(p.x - PW) + 1 + PW + 0.001;
+        bumped = true;
+      }
+      p.z += v.z * h;
+      if (collides(p.x, p.y, p.z)) {
+        p.z = v.z > 0 ? Math.floor(p.z + PW) - PW - 0.001 : Math.floor(p.z - PW) + 1 + PW + 0.001;
+        bumped = true;
+      }
+      p.y += v.y * h;
+      const wasOnGround = this.onGround;
+      if (collides(p.x, p.y, p.z)) {
+        if (v.y < 0) p.y = Math.floor(p.y) + 1;
+        else p.y = Math.floor(p.y + PH) - PH - 0.001;
+        v.y = 0;
+      }
+      this.onGround = v.y <= 0 && collides(p.x, p.y - 0.02, p.z);
+      // auto-jump up single steps, so little ones don't get stuck
+      if (bumped && !this.flying && (wasOnGround || swim) && mag > 0.2
+          && !collides(p.x + ux * 0.45, p.y + 1.05, p.z + uz * 0.45)) {
+        v.y = swim ? 6.5 : JUMP;
+      }
+    }
+    if (p.y < -5) this.goHome();
+    this.syncCamera();
+
+    // holding a button keeps breaking / placing
+    this.breakTimer = this.repeat(it.breakHeld, this.wasBreak, this.breakTimer, dt, () => this.breakBlock());
+    this.placeTimer = this.repeat(it.placeHeld, this.wasPlace, this.placeTimer, dt, () => this.placeBlock());
+    this.wasBreak = it.breakHeld; this.wasPlace = it.placeHeld;
+
+    this.updateAvatar(dt);
+  }
+  repeat(held, was, timer, dt, fn) {
+    if (!held) return 0;
+    if (!was) { fn(); return 0.3; }
+    timer -= dt;
+    if (timer <= 0) { fn(); return 0.22; }
+    return timer;
+  }
+
+  syncCamera() {
+    this.camera.position.set(this.pos.x, this.pos.y + EYE, this.pos.z);
+    this.camera.rotation.set(this.pitch, this.yaw, 0);
+  }
+  updateAvatar(dt) {
+    const a = this.avatar;
+    a.root.position.copy(this.pos);
+    a.root.rotation.y = this.yaw;
+    a.head.rotation.x = this.pitch * 0.8;
+    const speed = Math.hypot(this.vel.x, this.vel.z);
+    const walking = speed > 0.3 && !this.flying;
+    this.swing += ((walking ? 1 : 0) - this.swing) * Math.min(1, dt * 10);
+    if (walking) this.walkPhase += dt * speed * 2.2;
+    const sw = Math.sin(this.walkPhase) * 0.7 * this.swing;
+    a.legL.rotation.x = sw; a.legR.rotation.x = -sw;
+    a.armL.rotation.x = -sw; a.armR.rotation.x = sw;
+  }
+  updateHighlight() {
+    const hit = playing ? pickBlock(this.camera) : null;
+    this.highlight.visible = !!hit;
+    if (hit) this.highlight.position.set(hit.x + 0.5, hit.y + 0.5, hit.z + 0.5);
+    this.hud.message = this.input.message();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Split screen
+// ---------------------------------------------------------------------------
+/** Screen rectangles (CSS px, top-left origin) for n players. */
+function splitRects(n, W, H) {
+  const r = (x, y, w, h) => ({ x, y, w, h });
+  if (n <= 1) return [r(0, 0, W, H)];
+  const hw = Math.round(W / 2), hh = Math.round(H / 2);
+  if (n >= 4) return [r(0, 0, hw, hh), r(hw, 0, W - hw, hh), r(0, hh, hw, H - hh), r(hw, hh, W - hw, H - hh)];
+  // two or three players: split side by side or top/bottom, whichever gives views closer to 3:2
+  const off = a => Math.abs(Math.log(a / 1.5));
+  if (off(hw / H) < off(W / hh)) {
+    return n === 2 ? [r(0, 0, hw, H), r(hw, 0, W - hw, H)]
+      : [r(0, 0, hw, H), r(hw, 0, W - hw, hh), r(hw, hh, W - hw, H - hh)];
+  }
+  return n === 2 ? [r(0, 0, W, hh), r(0, hh, W, H - hh)]
+    : [r(0, 0, W, hh), r(0, hh, hw, H - hh), r(hw, hh, W - hw, H - hh)];
+}
+/** Fits the field of view to a view's shape: wide views keep a 16:9 view across, tall ones at least 74°. */
+function fitCamera(cam, aspect) {
+  const rad = THREE.MathUtils.degToRad;
+  let t = Math.tan(rad(36));
+  if (aspect > 16 / 9) t = t * (16 / 9) / aspect;
+  else t = Math.max(t, Math.tan(rad(37)) / aspect);
+  cam.fov = THREE.MathUtils.radToDeg(2 * Math.atan(t));
+  cam.aspect = aspect;
+  cam.updateProjectionMatrix();
+}
+function relayout() {
+  const W = innerWidth, H = innerHeight;
+  renderer.setSize(W, H);
+  const rects = splitRects(players.length, W, H);
+  players.forEach((p, i) => {
+    p.rect = rects[i];
+    p.hud.layout(rects[i], players.length > 1);
+    fitCamera(p.camera, rects[i].w / rects[i].h);
+  });
+}
+addEventListener('resize', relayout);
+
+function renderViews() {
+  const H = innerHeight;
+  for (const p of players) {
+    const r = p.rect, y = H - r.y - r.h;   // WebGL counts from the bottom
+    renderer.setViewport(r.x, y, r.w, r.h);
+    renderer.setScissor(r.x, y, r.w, r.h);
+    const under = inWater(p.camera.position);
+    scene.fog.color.copy(under ? UNDERWATER : SKY);
+    scene.background.copy(under ? UNDERWATER : SKY);
+    scene.fog.near = under ? 1 : 45;
+    scene.fog.far = under ? 22 : 130;
+    sun.position.copy(p.camera.position).addScaledVector(sunDir, 400);
+    sun.lookAt(p.camera.position);
+    renderer.render(scene, p.camera);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Joining and leaving
+// ---------------------------------------------------------------------------
+const hasKeyboardPlayer = () => players.some(p => p.input === keyboard);
+const padPlayer = i => players.find(p => p.input instanceof PadInput && p.input.index === i);
+
+function addPlayer(input) {
+  if (players.length >= MAX_PLAYERS) return null;
+  let slot = 0;
+  while (players.some(p => p.slot === slot)) slot++;
+  input.reset();
+  const p = new Player(slot, input);
+  players.push(p);
+  players.sort((a, b) => a.slot - b.slot);
+  relayout();
+  renderMenu();
+  return p;
+}
+function removePlayer(p) {
+  if (players.length <= 1) return;   // somebody has to play
+  savedSlots[p.slot] = p.snapshot();
+  p.dispose();
+  players.splice(players.indexOf(p), 1);
+  if (p.input === keyboard && document.pointerLockElement === canvas) document.exitPointerLock();
+  relayout();
+  renderMenu();
 }
 
 // ---------------------------------------------------------------------------
@@ -961,11 +1370,10 @@ function saveWorld() {
       else { rle.push(prev, run); prev = blocks[i]; run = 1; }
     }
     rle.push(prev, run);
-    const p = player.pos;
+    for (const p of players) savedSlots[p.slot] = p.snapshot();
     localStorage.setItem(SAVE_KEY, JSON.stringify({
       size: [SX, SY, SZ], data: bytesToB64(Uint8Array.from(rle)),
-      player: [p.x, p.y, p.z, player.yaw, player.pitch, player.flying ? 1 : 0],
-      home: [home.x, home.y, home.z], selected,
+      players: savedSlots, home: [home.x, home.y, home.z],
     }));
     worldDirty = false;
   } catch (e) {
@@ -989,10 +1397,8 @@ function loadWorld() {
     if (o !== out.length) return false;
     blocks = out;
     home.set(...s.home);
-    player.pos.set(s.player[0], s.player[1], s.player[2]);
-    player.yaw = s.player[3]; player.pitch = s.player[4];
-    setFlying(!!s.player[5]);
-    select(s.selected || 0, true);
+    if (s.players) Object.assign(savedSlots, s.players);
+    else if (s.player) savedSlots[0] = [...s.player.slice(0, 6), s.selected || 0];   // a single-player save
     return true;
   } catch (e) {
     console.warn('Could not load the saved world, making a new one', e);
@@ -1002,9 +1408,14 @@ function loadWorld() {
 function newWorld() {
   generateWorld((Math.random() * 1e9) | 0);
   findHome();
-  player.yaw = Math.PI * 0.25; player.pitch = -0.15;
-  setFlying(false);
-  goHome();
+  for (const k in savedSlots) delete savedSlots[k];
+  for (const p of players) {
+    p.yaw = Math.PI * 0.25; p.pitch = -0.15;
+    p.setFlying(false);
+    p.goHome();
+    p.syncCamera();
+    p.updateAvatar(0);
+  }
   rebuildAll();
   saveWorld();
 }
@@ -1013,21 +1424,71 @@ addEventListener('beforeunload', saveWorld);
 document.addEventListener('visibilitychange', () => { if (document.hidden) saveWorld(); });
 
 // ---------------------------------------------------------------------------
-// Input + menu
+// Menu
 // ---------------------------------------------------------------------------
 const overlay = document.getElementById('overlay');
-const canvas = renderer.domElement;
-let playing = false;
-let dragLook = false;   // fallback when the browser refuses pointer lock
+const $ = id => document.getElementById(id);
 
-function startPlaying() {
+function showPage(name) {
+  $('page-main').classList.toggle('hidden', name !== 'main');
+  $('page-players').classList.toggle('hidden', name !== 'players');
+}
+function renderMenu() {
+  $('chips').innerHTML = '';
+  for (const p of players) {
+    const c = document.createElement('span');
+    c.className = 'chip';
+    c.style.setProperty('--pc', PLAYER_COLORS[p.slot]);
+    c.textContent = p.input === keyboard ? '⌨️' : '🎮';
+    $('chips').appendChild(c);
+  }
+  const slots = $('slots');
+  slots.innerHTML = '';
+  for (let s = 0; s < MAX_PLAYERS; s++) {
+    const p = players.find(q => q.slot === s);
+    const card = document.createElement('div');
+    card.className = 'pcard' + (p ? '' : ' empty');
+    card.style.setProperty('--pc', PLAYER_COLORS[s]);
+    const line = (cls, text) => { const d = document.createElement('div'); d.className = cls; d.textContent = text; card.appendChild(d); };
+    line('pname', `Player ${s + 1}`);
+    if (p) {
+      line('pinput', p.input.label);
+      if (p.input.detail) line('pid', p.input.detail);
+      if (players.length > 1) {
+        const x = document.createElement('button');
+        x.className = 'btn small'; x.textContent = '✕ Leave';
+        x.addEventListener('click', () => removePlayer(p));
+        card.appendChild(x);
+      }
+    } else {
+      line('pinput', '🎮 Press A / ✕ on a controller to join');
+      if (!hasKeyboardPlayer()) {
+        const k = document.createElement('button');
+        k.className = 'btn small'; k.textContent = '⌨️ Use keyboard & mouse';
+        k.addEventListener('click', () => addPlayer(keyboard));
+        card.appendChild(k);
+      }
+    }
+    slots.appendChild(card);
+  }
+  const n = Pads.indices().length;
+  $('padinfo').textContent = n
+    ? `🎮 ${n} controller${n > 1 ? 's' : ''} found. Press Start to play!`
+    : 'No controllers found yet. Plug one in with USB and press any button on it.';
+}
+
+function startPlaying(userGesture) {
   initAudio();
   playing = true;
   overlay.classList.add('hidden');
   document.activeElement?.blur();
+  // Pointer lock needs a click; started from a controller, the keyboard player clicks the screen instead.
+  if (hasKeyboardPlayer() && userGesture) requestLock();
+}
+function requestLock() {
   try {
     const p = canvas.requestPointerLock();
-    if (p && p.catch) p.catch(() => { dragLook = true; });
+    if (p && p.catch) p.catch(e => { console.info('Pointer lock refused, drag the mouse to look around', e); dragLook = true; });
   } catch (e) {
     console.info('Pointer lock not available, drag the mouse to look around', e);
     dragLook = true;
@@ -1035,112 +1496,124 @@ function startPlaying() {
 }
 function pause() {
   playing = false;
-  for (const k in keys) keys[k] = false;
-  stopRepeat();
-  document.getElementById('play').textContent = 'Keep playing!';
-  document.getElementById('tagline').textContent = 'Taking a break 😊';
+  keyboard.reset();
+  $('play').textContent = 'Keep playing!';
+  $('tagline').textContent = 'Taking a break 😊';
+  showPage('main');
+  renderMenu();
   overlay.classList.remove('hidden');
+  if (document.pointerLockElement === canvas) document.exitPointerLock();
   saveWorld();
 }
-document.getElementById('play').addEventListener('click', startPlaying);
-document.getElementById('newworld').addEventListener('click', e => {
+$('play').addEventListener('click', () => startPlaying(true));
+$('players-btn').addEventListener('click', () => { renderMenu(); showPage('players'); });
+$('players-done').addEventListener('click', () => showPage('main'));
+$('newworld').addEventListener('click', e => {
   e.currentTarget.blur();
   if (confirm('Make a brand new world? Your current world will be gone.')) newWorld();
 });
+
+/** Controllers in the menu: A joins, B leaves, Start plays. While playing, Start opens the menu. */
+let padSignature = '';
+function handlePadsForMenu() {
+  for (const i of Pads.indices()) {
+    const owner = padPlayer(i);
+    if (playing) {
+      if (Pads.pressed(i, PAD.START)) pause();
+      continue;
+    }
+    if (!owner && (Pads.pressed(i, PAD.A) || Pads.pressed(i, PAD.START))) {
+      if (addPlayer(new PadInput(i))) { initAudio(); playPlace(1.5); }
+    } else if (owner && Pads.pressed(i, PAD.START)) {
+      startPlaying(false);
+    } else if (owner && Pads.pressed(i, PAD.B)) {
+      removePlayer(owner);
+    }
+  }
+  const sig = Pads.indices().join();
+  if (sig !== padSignature) { padSignature = sig; renderMenu(); }
+}
+
+// ---------------------------------------------------------------------------
+// Keyboard and mouse (they drive the keyboard player, if there is one)
+// ---------------------------------------------------------------------------
 document.addEventListener('pointerlockchange', () => {
   if (document.pointerLockElement === canvas) dragLook = false;
-  else if (playing && !dragLook) pause();
+  else if (playing) pause();
 });
-
 addEventListener('keydown', e => {
   if (!playing) return;
-  if (e.code === 'Escape') { if (dragLook) pause(); return; }
-  keys[e.code] = true;
+  if (e.code === 'Escape') { if (document.pointerLockElement !== canvas) pause(); return; }
+  if (!hasKeyboardPlayer()) return;
+  keyboard.keys[e.code] = true;
   if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
   if (e.repeat) return;
-  if (/^Digit\d$/.test(e.code)) { const n = +e.code.slice(5); select(n === 0 ? 9 : n - 1); }
-  if (e.code === 'KeyF') setFlying(!player.flying);
-  if (e.code === 'KeyH') goHome();
+  if (/^Digit\d$/.test(e.code)) { const n = +e.code.slice(5); keyboard.actions.push(n === 0 ? 9 : n - 1); }
+  if (e.code === 'KeyF') keyboard.actions.push('fly');
+  if (e.code === 'KeyH') keyboard.actions.push('home');
 });
-addEventListener('keyup', e => { keys[e.code] = false; });
-addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+addEventListener('keyup', e => { keyboard.keys[e.code] = false; });
+addEventListener('blur', () => { keyboard.keys = {}; keyboard.buttons = [false, false, false]; });
 
-function look(dx, dy) {
-  player.yaw -= dx * 0.0024;
-  player.pitch = Math.max(-1.55, Math.min(1.55, player.pitch - dy * 0.0024));
-}
-let repeatTimer = 0, dragStart = null;
-function act(button) { if (button === 0) breakBlock(); else if (button === 2) placeBlock(); }
-function stopRepeat() { clearInterval(repeatTimer); repeatTimer = 0; }
+let dragStart = null;
 canvas.addEventListener('mousedown', e => {
-  if (!playing) return;
-  if (dragLook) { dragStart = { x: e.clientX, y: e.clientY, moved: 0, button: e.button }; return; }
-  act(e.button);
-  stopRepeat();
-  const b = e.button;
-  repeatTimer = setInterval(() => act(b), 260);
+  if (!playing || !hasKeyboardPlayer()) return;
+  if (document.pointerLockElement === canvas) { keyboard.buttons[e.button] = true; return; }
+  if (dragLook) { dragStart = { moved: 0, button: e.button }; return; }
+  requestLock();
 });
 addEventListener('mouseup', e => {
-  stopRepeat();
+  keyboard.buttons[e.button] = false;
   if (dragLook && dragStart && playing) {
-    if (dragStart.moved < 6) act(dragStart.button);
+    if (dragStart.moved < 6) keyboard.actions.push(dragStart.button === 0 ? 'break' : 'place');
     dragStart = null;
   }
 });
 addEventListener('mousemove', e => {
   if (!playing) return;
-  if (document.pointerLockElement === canvas) look(e.movementX, e.movementY);
-  else if (dragLook && dragStart) { look(e.movementX, e.movementY); dragStart.moved += Math.abs(e.movementX) + Math.abs(e.movementY); }
+  if (document.pointerLockElement === canvas) { keyboard.mdx += e.movementX; keyboard.mdy += e.movementY; }
+  else if (dragLook && dragStart) {
+    keyboard.mdx += e.movementX; keyboard.mdy += e.movementY;
+    dragStart.moved += Math.abs(e.movementX) + Math.abs(e.movementY);
+  }
 });
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 addEventListener('wheel', e => {
-  if (!playing) return;
-  select(selected + (e.deltaY > 0 ? 1 : -1));
+  if (playing && hasKeyboardPlayer()) keyboard.actions.push(e.deltaY > 0 ? 'next' : 'prev');
 }, { passive: true });
 
 // ---------------------------------------------------------------------------
 // Main loop
 // ---------------------------------------------------------------------------
-if (!loadWorld()) newWorld(); else { rebuildAll(); if (!home.y) findHome(); }
-select(selected, true);
-camera.position.set(player.pos.x, player.pos.y + EYE, player.pos.z);
-camera.rotation.set(player.pitch, player.yaw, 0);
+if (!loadWorld()) { generateWorld((Math.random() * 1e9) | 0); findHome(); }
+rebuildAll();
+addPlayer(keyboard);
+saveWorld();
 
 const clock = new THREE.Clock();
 function frame() {
   const dt = Math.min(clock.getDelta(), 0.05);
-  if (playing) updatePlayer(dt);
+  Pads.poll();
+  handlePadsForMenu();
+  if (playing) for (const p of players) p.update(dt);
 
   // rebuild a few changed chunks per frame
   let n = 0;
   for (const i of dirtyChunks) { rebuildChunk(i); dirtyChunks.delete(i); if (++n >= 4) break; }
 
-  const hit = playing ? pickBlock() : null;
-  highlight.visible = !!hit;
-  if (hit) highlight.position.set(hit.x + 0.5, hit.y + 0.5, hit.z + 0.5);
-
-  // underwater tint
-  const under = headInWater();
-  scene.fog.color.copy(under ? UNDERWATER : SKY);
-  scene.background.copy(under ? UNDERWATER : SKY);
-  scene.fog.near = under ? 1 : 45;
-  scene.fog.far = under ? 22 : 130;
-
+  for (const p of players) p.updateHighlight();
   for (const c of clouds.children) {
     c.position.x += dt * 1.2;
     if (c.position.x > SX + 130) c.position.x -= SX + 260;
   }
-  sun.position.copy(camera.position).addScaledVector(sunDir, 400);
-  sun.lookAt(camera.position);
-
   updateParticles(dt);
-  renderer.render(scene, camera);
+  renderViews();
   requestAnimationFrame(frame);
 }
 frame();
 
 // debug/test hook
-window.easycraft = { player, select, breakBlock, placeBlock, startPlaying, newWorld, getBlock, B };
+window.easycraft = { players, keyboard, Pads, PadInput, addPlayer, removePlayer, startPlaying, pause, newWorld, getBlock, B };
 </script>
 <script>
   // Shown only if the game script failed to start (e.g. vendor/three/three.min.js is missing,

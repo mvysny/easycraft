@@ -28,3 +28,15 @@ trims to its length — which is how long this file gets, so keep it short.
   npm registry]**
 - The classic build defines a global `THREE` and logs a `console.warn` on load saying it is
   deprecated since r150. **[verified 2026-11-04, three 0.160.1]**
+
+## R_gamepad_api — the browser Gamepad API
+
+- `navigator.getGamepads()` lists a controller only after a button on it has been pressed
+  while the page is open; until then a plugged-in pad is invisible. **[docs]**
+- The only events are `gamepadconnected` / `gamepaddisconnected`; button and stick state exists
+  only as a snapshot from `getGamepads()`, so presses are found by polling. **[docs]**
+- In the `standard` mapping, buttons 6 and 7 are the triggers with an analogue `value`, 8/9
+  Back/Start, 12–15 the d-pad; axes 0/1 the left stick, 2/3 the right, +y pointing down. **[docs]**
+- A controller button press does not count as the user gesture that `requestPointerLock()` and
+  an `AudioContext` need, so a page started from a controller cannot grab the mouse.
+  **[unverified]**

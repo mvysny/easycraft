@@ -11,21 +11,31 @@ damage and nothing to install — double-click `index.html` and play.
 Or open `index.html` in a browser (Chrome, Firefox, Edge or Safari); no internet is needed. Click
 **Play!**, then:
 
-| Key | Does |
-|---|---|
-| Mouse | look around |
-| W A S D, ↑ ↓ | walk |
-| ← → | turn |
-| Space | jump, swim up |
-| Left click | take a block away |
-| Right click | put a block down |
-| 1–0, mouse wheel | pick a block |
-| F | fly on/off (Shift goes down) |
-| H | go back home |
-| Esc | menu |
+| | Keyboard | Controller |
+|---|---|---|
+| Look around | mouse, ← → | right stick |
+| Walk | W A S D, ↑ ↓ | left stick |
+| Jump, swim up | Space | A |
+| Take a block away | left click | RT |
+| Put a block down | right click | LT |
+| Pick a block | 1–0, mouse wheel | LB / RB |
+| Fly on/off | F | Y |
+| Fly down | Shift | B |
+| Go back home | H | Back |
+| Menu | Esc | Start |
 
-Walking into a one-block step hops up it. The world saves itself in the browser; **Make a new
-world** in the menu starts over.
+Walking into a one-block step hops up it. The world saves itself in the browser; **New world** in
+the menu starts over.
+
+## Playing together
+
+Up to four players share one screen, split into a view each. One player can use the keyboard and
+mouse; everyone else plugs a controller in with USB (Xbox-style and PlayStation pads work, as
+anything the browser sees as a standard gamepad does).
+
+In the menu, press **A** (✕ on PlayStation) on a controller to join, **B** to leave, and **Start**
+to play. **👥 Players** shows who is in and lets the keyboard player join or leave. Each player
+has a colour and a name tag that shows through walls, so friends can find each other.
 
 ## Copying it
 

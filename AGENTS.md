@@ -4,8 +4,8 @@
 
 EasyCraft is a block-building game for young kids that runs in a web browser: walk around a
 small island, take blocks away and build with twenty kinds of block, and find flowers, shells,
-apples and gems to keep in your bag. There are no monsters, no damage and nothing to install —
-double-click `index.html` and play.
+apples and thirteen minerals, in caves, a desert and sunken ruins, to keep in your bag. There
+are no monsters, no damage and nothing to install — double-click `index.html` and play.
 
 ## Promises
 

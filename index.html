@@ -136,7 +136,7 @@
   /* the bag: one per player, inside that player's HUD */
   .hud .bag {
     position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%); display: none;
-    --cell: min(44px, calc((100cqw - 90px) / 10), calc((100cqh - 200px) / 3.4));
+    --cell: min(44px, calc((100cqw - 90px) / 10), calc((100cqh - 200px) / 4.4));
     background: var(--card); color: var(--ink); border-radius: 22px; padding: 10px 16px 12px;
     box-shadow: 0 8px 0 rgba(0, 0, 0, 0.18); border: 4px solid var(--pc); text-align: center;
   }
@@ -181,7 +181,7 @@
 <div id="overlay">
   <div class="card page" id="page-main">
     <h1>Easy<span class="b">Craft</span></h1>
-    <p class="tagline" id="tagline">Build anything you can imagine — and find flowers, shells, apples and gems!</p>
+    <p class="tagline" id="tagline">Build anything you can imagine — and find flowers, shells, apples, gems and treasure!</p>
     <table class="controls">
       <thead><tr><th></th><th>⌨️ Keyboard</th><th>🎮 Controller</th></tr></thead>
       <tbody>
@@ -253,7 +253,11 @@ const TILE_NAMES = [
   'grass_top', 'grass_side', 'dirt', 'stone', 'planks', 'log_side', 'log_top', 'leaves',
   'sand', 'glass', 'brick', 'water', 'snow', 'bedrock', 'gold',
   'red', 'orange', 'yellow', 'lime', 'blue', 'purple', 'pink', 'white',
-  'flower_red', 'flower_yellow', 'shell', 'apple', 'gem', 'gem_ore', 'apple_leaves',
+  'flower_red', 'flower_yellow', 'shell', 'apple', 'diamond', 'diamond_ore', 'apple_leaves',
+  'coal', 'coal_ore', 'copper', 'copper_ore', 'iron', 'iron_ore', 'lapis', 'lapis_ore',
+  'nugget', 'gold_ore', 'redstone', 'redstone_ore', 'emerald', 'emerald_ore', 'ruby', 'ruby_ore',
+  'water_ember', 'water_ember_ore', 'fire_ember', 'fire_ember_ore', 'rainbow', 'rainbow_ore',
+  'celestium', 'celestium_ore', 'lava', 'chest_side', 'chest_top', 'chest_open_top',
 ];
 const T = Object.fromEntries(TILE_NAMES.map((n, i) => [n, i]));
 const ATLAS_W = ATLAS_COLS * TILE;
@@ -293,6 +297,35 @@ const atlasImg = new ImageData(ATLAS_W, ATLAS_H);
     for (const [dx, dy] of [[0, -3], [3, 0], [0, 3], [-3, 0], [2, -2], [2, 2], [-2, 2], [-2, -2]]) disc(7.5 + dx, 5 + dy, 1.7, petal);
     disc(7.5, 5, 1.5, middle);
   };
+  const line = (x0, y0, x1, y1, c, amt = 0.06) => {
+    const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
+    for (let i = 0; i <= n; i++) set(Math.round(x0 + (x1 - x0) * i / n), Math.round(y0 + (y1 - y0) * i / n), vary(c, amt));
+  };
+  // A rough lump of mineral lit from the top left; `cols` is [shadow, body, shine].
+  const lump = (cx, cy, r, cols, amt = 0.05) => {
+    for (let y = 0; y < TILE; y++) for (let x = 0; x < TILE; x++) {
+      const dx = x + 0.5 - cx, dy = y + 0.5 - cy, d = Math.hypot(dx, dy) + (rnd() - 0.5) * 0.7;
+      if (d > r) continue;
+      const lit = -(dx + dy) / r;   // about 1 toward the top left, -1 toward the bottom right
+      set(x, y, vary(lit < -0.6 ? cols[0] : lit > 0.5 && d < r - 0.3 ? cols[2] : cols[1], amt));
+    }
+  };
+  // The flat faces of a broken mineral: each pixel takes the shade of the nearest of `n` faces.
+  const facets = (c, n, spread, amt = 0.03) => {
+    const seeds = Array.from({ length: n }, () => [rnd() * TILE, rnd() * TILE, 1 + (rnd() * 2 - 1) * spread]);
+    for (let y = 0; y < TILE; y++) for (let x = 0; x < TILE; x++) {
+      let best = Infinity, k = 1;
+      for (const [sx, sy, sk] of seeds) {
+        const d = (x + 0.5 - sx) ** 2 + (y + 0.5 - sy) ** 2;
+        if (d < best) { best = d; k = sk; }
+      }
+      set(x, y, vary(mul(c, k), amt));
+    }
+  };
+  const ORE_SPOTS = [[4, 4, 1.9], [11.5, 3.5, 1.6], [7.5, 9, 2.1], [3, 12.5, 1.6], [12.5, 12, 1.8]];
+  // Stone with lumps of a mineral in it.
+  const ore = (cols, spots = ORE_SPOTS) => { paint.stone(); for (const [x, y, r] of spots) lump(x, y, r, cols); };
+  const for16 = fn => { for (let y = 0; y < TILE; y++) for (let x = 0; x < TILE; x++) fn(x, y, x + 0.5 - 8, y + 0.5 - 8); };
   const GREEN = [96, 190, 62], DIRT = [134, 96, 67], BARK = [112, 82, 52];
   const paint = {
     grass_top() { fill(GREEN, 0.14); sprinkle([135, 222, 84], 22); sprinkle([70, 150, 45], 14); },
@@ -384,20 +417,135 @@ const atlasImg = new ImageData(ATLAS_W, ATLAS_H);
       for (let y = 1; y < 5; y++) set(8, y, vary([110, 72, 40], 0.05));
       for (const [x, y] of [[9, 2], [10, 2], [11, 1], [10, 3], [11, 2], [12, 1]]) set(x, y, vary([76, 170, 52], 0.06));
     },
-    gem() {
-      for (let y = 0; y < TILE; y++) for (let x = 0; x < TILE; x++) {
-        const facet = ((x + y) >> 2) % 2 ? 1.0 : 0.82;   // diagonal facets
-        set(x, y, vary(mul([64, 196, 246], facet), 0.03));
-      }
-      border([30, 110, 190], 0.03);
-      for (const [x, y] of [[3, 3], [4, 3], [3, 4], [4, 4], [11, 9], [12, 8]]) set(x, y, [236, 252, 255]);
+    diamond() {   // a cut stone seen from above: facets fanning out from a flat middle
+      for16((x, y, dx, dy) => {
+        const sector = Math.floor((Math.atan2(dy, dx) + Math.PI) / (Math.PI / 4)) % 2;
+        set(x, y, vary(mul([150, 214, 248], (sector ? 1 : 0.8) * (Math.hypot(dx, dy) < 3.3 ? 1.08 : 1)), 0.03));
+      });
+      border([70, 150, 214], 0.03);
+      for (const [x, y] of [[4, 4], [5, 4], [4, 5], [7, 7], [8, 8], [11, 10], [10, 11]]) set(x, y, [240, 252, 255]);
     },
-    gem_ore() {
-      paint.stone();
-      for (const [x, y] of [[3, 3], [11, 4], [6, 10], [12, 12], [2, 12]]) {
-        set(x, y, vary([60, 190, 246], 0.04)); set(x + 1, y, vary([40, 150, 226], 0.04));
-        set(x, y + 1, vary([40, 150, 226], 0.04)); set(x + 1, y + 1, vary([140, 230, 255], 0.03));
+    diamond_ore() { ore([[40, 140, 210], [110, 208, 246], [235, 252, 255]]); },
+    // The minerals below follow a young player's drawings, painted the way the real stones look.
+    coal() { facets([46, 46, 52], 8, 0.35, 0.05); sprinkle([22, 22, 24], 24, 0.1); sprinkle([132, 140, 158], 7, 0.05); },
+    coal_ore() { ore([[18, 18, 20], [42, 42, 48], [110, 116, 130]]); },
+    copper() {
+      facets([196, 112, 60], 7, 0.18, 0.05);
+      // the green streak of the drawing: patina, where copper has got wet
+      for (let x = 1; x < 15; x++) {
+        const y = Math.round(9 - x * 0.3 + Math.sin(x) * 0.8);
+        set(x, y, vary([46, 128, 100], 0.08)); set(x, y + 1, vary([70, 160, 124], 0.08));
       }
+      sprinkle([64, 150, 118], 6); sprinkle([246, 186, 136], 8, 0.04);
+    },
+    copper_ore() {
+      ore([[128, 66, 32], [204, 120, 64], [246, 184, 134]]);
+      for (const [x, y] of ORE_SPOTS) set(Math.round(x) + 1, Math.round(y), vary([58, 146, 112], 0.06));
+    },
+    iron() {
+      facets([92, 94, 102], 7, 0.15, 0.04);
+      for (const [x0, y0, x1, y1] of [[2, 3, 6, 13], [6, 1, 11, 11], [10, 4, 13, 14]]) line(x0, y0, x1, y1, [132, 80, 46], 0.1);   // rust
+      sprinkle([170, 174, 184], 6, 0.03);
+    },
+    iron_ore() {
+      ore([[44, 44, 50], [86, 88, 98], [176, 180, 192]]);
+      for (const [x, y] of ORE_SPOTS) set(Math.round(x), Math.round(y) + 1, vary([150, 86, 46], 0.06));   // rust
+    },
+    lapis() {
+      fill([40, 66, 180], 0.1); sprinkle([24, 40, 132], 34, 0.08); sprinkle([82, 112, 222], 18, 0.06);
+      for (let x = 0; x < TILE; x++) set(x, Math.round(4 + Math.sin(x * 0.7) * 1.5), vary([214, 220, 236], 0.04));   // white calcite
+      for (const [x, y] of [[3, 10], [9, 8], [12, 13], [6, 14], [13, 2]]) set(x, y, vary([236, 196, 84], 0.05));    // golden pyrite
+    },
+    lapis_ore() { ore([[22, 38, 124], [42, 70, 186], [96, 128, 232]]); set(8, 9, [236, 196, 84]); set(4, 4, [236, 196, 84]); },
+    nugget() {   // rounded lumps of gold pressed together
+      fill([150, 104, 18], 0.06);
+      for (const [x, y, r] of [[4, 4, 4], [11.5, 4.5, 3.8], [4.5, 11.5, 3.8], [11.5, 11.5, 4.2], [8, 8, 3]]) {
+        lump(x, y, r, [[184, 130, 26], [236, 186, 48], [255, 236, 140]], 0.04);
+      }
+    },
+    gold_ore() { ore([[172, 118, 20], [240, 192, 52], [255, 242, 160]]); },
+    redstone() { fill([196, 28, 24], 0.12); sprinkle([118, 10, 10], 30, 0.1); sprinkle([250, 84, 64], 18, 0.06); sprinkle([255, 200, 186], 5, 0.02); },
+    redstone_ore() {
+      ore([[120, 12, 10], [214, 34, 28], [255, 140, 120]],
+        [[3, 3, 1.3], [8, 2.5, 1.2], [13, 4, 1.4], [5, 8, 1.3], [10.5, 8.5, 1.5], [2.5, 13, 1.3], [7.5, 13, 1.2], [13, 12.5, 1.4]]);
+    },
+    emerald() {   // the side of a six-sided crystal: long faces, lighter where they catch the light
+      const SHADE = [0.72, 0.86, 1.06, 1.12, 0.94, 0.8];
+      for16((x, y) => set(x, y, vary(mul([64, 186, 100], SHADE[Math.min(5, Math.floor(x / 2.7))]), 0.04)));
+      for (const [x0, y0, x1, y1] of [[3, 2, 5, 9], [9, 6, 12, 14], [6, 11, 7, 15]]) line(x0, y0, x1, y1, [30, 112, 62]);   // darker cracks
+      for (const [x, y] of [[6, 3], [7, 4], [6, 5]]) set(x, y, [196, 250, 206]);
+    },
+    emerald_ore() { ore([[26, 112, 58], [64, 186, 100], [170, 244, 180]], [[4, 4, 1.6], [11.5, 4, 1.4], [7.5, 9.5, 1.8], [3.5, 12.5, 1.4], [12.5, 12, 1.6]]); },
+    ruby() {
+      facets([200, 24, 46], 9, 0.25, 0.04); border([118, 10, 28], 0.04);
+      for (const [x, y] of [[4, 3], [5, 3], [4, 4], [10, 9], [11, 8]]) set(x, y, [255, 176, 190]);
+      for (const [x, y] of [[12, 4], [3, 11], [7, 12], [8, 12]]) set(x, y, [255, 150, 64]);   // the orange glints of the drawing
+    },
+    ruby_ore() { ore([[112, 10, 28], [204, 26, 50], [255, 158, 170]]); },
+    water_ember() {   // pale blue round the edge, deeper blue, and a dark glowing eye in the middle
+      for16((x, y, dx, dy) => set(x, y, vary((dx / 2.6) ** 2 + (dy / 6.2) ** 2 <= 1 ? [26, 34, 156]
+        : (dx / 5) ** 2 + (dy / 7.6) ** 2 <= 1 ? [34, 98, 200] : [92, 160, 232], 0.05)));
+      for (let y = 4; y < 12; y++) set(7, y, vary([90, 120, 250], 0.05));
+      set(7, 6, [200, 220, 255]);
+    },
+    water_ember_ore() { ore([[24, 34, 150], [46, 110, 212], [150, 196, 255]]); },
+    fire_ember() {   // rings of red, orange and yellow round a red heart
+      for16((x, y, dx, dy) => {
+        const ax = Math.abs(dx), ay = Math.abs(dy), d = (ax + ay) * 0.45 + Math.max(ax, ay) * 0.55;
+        set(x, y, vary(d < 1.3 ? [214, 34, 22] : d < 3.6 ? [255, 228, 76] : d < 5.2 ? [255, 172, 44]
+          : d < 6.7 ? [240, 108, 26] : [196, 32, 24], 0.05));
+      });
+    },
+    fire_ember_ore() { ore([[196, 34, 22], [250, 144, 34], [255, 234, 110]]); },
+    rainbow() {   // rings of every colour round a dark, sparkling middle
+      const RINGS = [[26, 22, 80], [26, 22, 80], [52, 60, 190], [40, 160, 84], [248, 218, 52], [250, 146, 36], [228, 46, 38], [196, 30, 34]];
+      for16((x, y, dx, dy) => set(x, y, vary(RINGS[Math.min(7, Math.floor(Math.max(Math.abs(dx), Math.abs(dy))))], 0.05)));
+      for (const [x, y, c] of [[6, 7, [255, 255, 255]], [8, 6, [255, 240, 120]], [9, 9, [120, 255, 160]], [7, 9, [255, 140, 200]]]) set(x, y, c);
+    },
+    rainbow_ore() {
+      paint.stone();
+      const C = [[226, 46, 38], [250, 150, 40], [248, 218, 52], [40, 170, 90], [70, 90, 230]];
+      ORE_SPOTS.forEach(([x, y, r], i) => lump(x, y, r, [mul(C[i], 0.6), C[i], C[i].map(v => v + (255 - v) * 0.6)]));
+    },
+    celestium() {   // silvery metal from the sky, criss-crossed like a real meteorite, with a dark eye
+      for16((x, y) => set(x, y, vary(mul([168, 172, 186], (x + y) % 5 === 0 ? 1.14 : (x - y + 20) % 5 === 0 ? 0.84 : 1), 0.04)));
+      disc(9, 7.5, 1.5, [44, 44, 56]);
+      for (const [x, y] of [[3, 3], [12, 12], [4, 12], [12, 3]]) set(x, y, [255, 255, 255]);
+      for (const [x, y] of [[2, 3], [4, 3], [3, 2], [3, 4]]) set(x, y, [210, 224, 255]);
+    },
+    celestium_ore() {
+      ore([[70, 80, 120], [196, 206, 236], [255, 255, 255]], [[5, 5, 2.2], [11, 10.5, 2.4], [4, 12.5, 1.4]]);
+      for (const [x, y] of [[5, 5], [11, 11]]) set(x, y, [36, 36, 50]);   // the dark eye
+      for (const [x, y] of [[2, 1], [13, 3], [8, 14], [14, 7]]) set(x, y, [235, 240, 255]);   // star sparkles in the rock
+    },
+    lava() {
+      fill([220, 78, 20], 0.08);
+      for (let i = 0; i < 7; i++) {   // bright cracks
+        let x = (rnd() * TILE) | 0, y = (rnd() * TILE) | 0;
+        for (let k = 0; k < 6; k++) {
+          set(x, y, vary([255, 200, 70], 0.05));
+          x = Math.max(0, Math.min(TILE - 1, x + ((rnd() * 3) | 0) - 1));
+          y = Math.max(0, Math.min(TILE - 1, y + ((rnd() * 3) | 0) - 1));
+        }
+      }
+      sprinkle([150, 36, 14], 20, 0.08); sprinkle([255, 240, 160], 6, 0.03);
+    },
+    chest_side() {
+      for16((x, y) => set(x, y, vary(y === 0 || y === 15 || y === 5 || x === 0 || x === 15 ? [96, 60, 30]
+        : mul([158, 102, 50], x % 5 === 2 ? 0.88 : 1), 0.06)));
+      for (let y = 4; y < 8; y++) for (let x = 7; x < 9; x++) set(x, y, vary([240, 198, 64], 0.04));   // the golden latch
+      set(7, 6, [60, 40, 20]);
+    },
+    chest_top() {
+      for16((x, y) => set(x, y, vary(x === 0 || y === 0 || x === 15 || y === 15 ? [96, 60, 30]
+        : mul([168, 110, 56], y % 4 === 3 ? 0.82 : 1), 0.06)));
+      for (const [x, y] of [[0, 0], [15, 0], [0, 15], [15, 15]]) set(x, y, [240, 198, 64]);
+    },
+    chest_open_top() {   // looking into an empty chest
+      for16((x, y) => {
+        const e = Math.min(x, y, 15 - x, 15 - y);
+        set(x, y, vary(e === 0 ? [96, 60, 30] : e === 1 ? [140, 90, 44] : mul([62, 40, 22], 0.8 + e * 0.05), 0.05));
+      });
     },
     apple_leaves() {
       paint.leaves();
@@ -437,6 +585,7 @@ const B = {};
  * flower) or 'flat' (a picture lying on the ground); only cubes are solid. Taking a block with
  * `opts.drop` (a block key) puts that block into the player's bag, and `opts.becomes` is what is
  * left in its place (air if not given) — an apple tree's leaves stay leaves when you pick the apple.
+ * A liquid is see-through like water unless `opts.opaque`.
  */
 function defBlock(key, name, tex, opts = {}) {
   const t = typeof tex === 'string' ? { top: tex, side: tex, bottom: tex } : tex;
@@ -446,6 +595,7 @@ function defBlock(key, name, tex, opts = {}) {
     id, key, name, shape,
     top: T[t.top], side: T[t.side], bottom: T[t.bottom],
     liquid: !!opts.liquid, unbreakable: !!opts.unbreakable,
+    opaque: !!opts.opaque,
     seeThrough: !!opts.seeThrough || shape !== 'cube',
     solid: !opts.liquid && shape === 'cube',
     drop: opts.drop ?? null, becomes: opts.becomes ?? null,
@@ -476,20 +626,48 @@ defBlock('flower_red', 'Red Flower', 'flower_red', { shape: 'cross', drop: 'flow
 defBlock('flower_yellow', 'Yellow Flower', 'flower_yellow', { shape: 'cross', drop: 'flower_yellow', pitch: 1.7 });
 defBlock('shell', 'Seashell', 'shell', { shape: 'flat', drop: 'shell', pitch: 1.9 });
 defBlock('apple', 'Apple', 'apple', { shape: 'cross', drop: 'apple', pitch: 1.3 });
-defBlock('gem', 'Gem', 'gem', { drop: 'gem', pitch: 2.2 });
-defBlock('gem_ore', 'Gem Rock', 'gem_ore', { drop: 'gem', pitch: 0.75 });
+defBlock('diamond', 'Diamond', 'diamond', { drop: 'diamond', pitch: 2.2 });
+defBlock('diamond_ore', 'Diamond Ore', 'diamond_ore', { drop: 'diamond', pitch: 0.75 });
 defBlock('apple_leaves', 'Apple Leaves', 'apple_leaves', { drop: 'apple', becomes: 'leaves', pitch: 1.4 });
+// Minerals, drawn for the game by a young player. Each one hides in its ore, a rock that gives
+// it up when taken; scatterMinerals puts the ores where the drawings say to look.
+for (const [key, name, ore, oreName, p] of [
+  ['coal', 'Coal', 'coal_ore', 'Coal Ore', 0.9], ['copper', 'Copper', 'copper_ore', 'Copper Ore', 1.15],
+  ['iron', 'Iron', 'iron_ore', 'Iron Ore', 1.05], ['lapis', 'Lapis Lazuli', 'lapis_ore', 'Lapis Lazuli Ore', 1.7],
+  ['nugget', 'Gold Nugget', 'gold_ore', 'Gold Ore', 2.0], ['redstone', 'Redstone', 'redstone_ore', 'Redstone Ore', 1.25],
+  ['emerald', 'Emerald', 'emerald_ore', 'Emerald Ore', 1.9], ['ruby', 'Ruby', 'ruby_ore', 'Ruby Ore', 1.8],
+  ['water_ember', 'Water Ember', 'water_ember_ore', 'Water Ember Ore', 1.6],
+  ['fire_ember', 'Fire Ember', 'fire_ember_ore', 'Fire Ember Ore', 1.4],
+  ['rainbow', 'Rainbow Stone', 'rainbow_ore', 'Rainbow Ore', 2.4], ['celestium', 'Celestium', 'celestium_ore', 'Celestium Ore', 2.6],
+]) {
+  defBlock(key, name, key, { drop: key, pitch: p });
+  defBlock(ore, oreName, ore, { drop: key, pitch: 0.75 });
+}
+// Lava is warm and harmless: you swim in it like water (gentle for young kids).
+defBlock('lava', 'Lava', 'lava', { liquid: true, opaque: true, pitch: 0.6 });
+defBlock('chest', 'Treasure Chest', { top: 'chest_top', side: 'chest_side', bottom: 'chest_top' },
+  { drop: 'water_ember', becomes: 'chest_open', pitch: 1.2 });
+defBlock('chest_open', 'Empty Chest', { top: 'chest_open_top', side: 'chest_side', bottom: 'chest_top' }, { pitch: 1.2 });
 
 /** The building blocks a new player's hotbar starts with; you can always build with these. */
 const HOTBAR = [
   'grass', 'dirt', 'stone', 'planks', 'log', 'leaves', 'sand', 'glass', 'brick', 'water',
   'snow', 'gold', 'red', 'orange', 'yellow', 'lime', 'blue', 'purple', 'pink', 'white',
 ].map(k => B[k]);
-/** The things you find, in bag order, with where to look for them. */
+/** The things you find, in bag order, with where to look for them and, for a mineral, how rare it is. */
 const FINDS = [
   ['flower_red', 'Look in the grass!'], ['flower_yellow', 'Look in the grass!'],
-  ['shell', 'Look on the beach!'], ['apple', 'Look in the trees!'], ['gem', 'Dig into the stone!'],
-].map(([k, hint]) => ({ id: B[k], hint }));
+  ['shell', 'Look on the beach!'], ['apple', 'Look in the trees!'],
+  ['coal', 'Dig anywhere!', 'common'], ['copper', 'Dig anywhere!', 'common'],
+  ['iron', 'Dig into the stone!', 'common'], ['lapis', 'Dig deep into the stone!', 'rare'],
+  ['nugget', 'Look in the caves and the desert!', 'rare'], ['redstone', 'Look in the caves!', 'rare'],
+  ['emerald', 'Look on the mountain tops!', 'rare'],
+  ['diamond', 'Look deep in the caves!', 'very rare'], ['ruby', 'Look deep in the caves!', 'very rare'],
+  ['water_ember', 'Look for treasure chests in the sea!', 'very rare'],
+  ['fire_ember', 'Look next to the lava, deep in the caves!', 'very rare'],
+  ['rainbow', 'Look deep in the caves!', 'very rare'],
+  ['celestium', 'Look at the very bottom of the caves!', 'extremely rare'],
+].map(([k, hint, rarity]) => ({ id: B[k], hint, rarity }));
 const isFind = id => FINDS.some(f => f.id === id);
 /** Everything the bag screen shows: the building blocks, then the finds. */
 const BAG_ITEMS = [...HOTBAR, ...FINDS.map(f => f.id)];
@@ -513,6 +691,8 @@ const getMesh = (x, y, z) => {
   return getBlock(x, y, z);
 };
 function setBlockRaw(x, y, z, id) { if (inBounds(x, y, z)) blocks[index(x, y, z)] = id; }
+const NEIGHBORS = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]];
+const touches = (x, y, z, id) => NEIGHBORS.some(([a, b, c]) => getBlock(x + a, y + b, z + c) === id);
 
 function generateWorld(seed) {
   blocks = new Uint8Array(SX * SY * SZ);
@@ -549,6 +729,9 @@ function generateWorld(seed) {
     }
     for (let y = h + 1; y <= WATER; y++) setBlockRaw(x, y, z, B.water);
   }
+  makeDesert(rnd, heights);
+  carveCaves(rnd, heights);
+  sinkRuins(rnd, heights);
 
   // trees
   for (let z = 3; z < SZ - 3; z++) for (let x = 3; x < SX - 3; x++) {
@@ -574,13 +757,100 @@ function generateWorld(seed) {
     setBlockRaw(x, h, z, B.dirt);
   }
   scatterFinds(rnd);
+  scatterMinerals(rnd);
+}
+
+/** Turns a patch of land away from the middle into desert: sand down to the stone. */
+function makeDesert(rnd, heights) {
+  for (let tries = 0; tries < 40; tries++) {
+    const a = rnd() * Math.PI * 2, d = SX * (0.22 + rnd() * 0.08);
+    const cx = Math.round(SX / 2 + Math.cos(a) * d), cz = Math.round(SZ / 2 + Math.sin(a) * d);
+    if (heights[cx + cz * SX] <= WATER + 2) continue;
+    const r = 10 + rnd() * 4;
+    for (let z = 0; z < SZ; z++) for (let x = 0; x < SX; x++) {
+      const h = heights[x + z * SX];
+      const ragged = Math.sin(x * 0.5) + Math.cos(z * 0.45);
+      if (h <= WATER + 1 || Math.hypot(x - cx, z - cz) > r + ragged) continue;
+      for (let y = Math.max(1, h - 3); y <= h; y++) setBlockRaw(x, y, z, B.sand);
+    }
+    return;
+  }
 }
 
 /**
- * Hides things to find in the world as it is now: flowers on grass, shells on the beach, apples
- * in the outside of the trees, and gem rock in the stone (plus a few patches on the surface, so
- * the first one is easy to spot). Works on any world, so a world saved before there were finds
- * gets them too.
+ * Digs caves. Each starts as a hole in a hillside away from home, winds down into the deep stone
+ * and ends in a hall, the first one (and some others) with a pool of lava on its floor. They stay
+ * under the land and never open into the sea.
+ */
+function carveCaves(rnd, heights) {
+  const land = (x, z) => x >= 3 && z >= 3 && x < SX - 3 && z < SZ - 3 && heights[(x | 0) + (z | 0) * SX] > WATER + 2;
+  const DIGGABLE = new Set([B.stone, B.dirt, B.grass, B.snow]);
+  const dig = (cx, cy, cz, r) => {
+    for (let y = Math.max(1, Math.floor(cy - r)); y <= cy + r; y++) {
+      for (let z = Math.floor(cz - r); z <= cz + r; z++) for (let x = Math.floor(cx - r); x <= cx + r; x++) {
+        if ((x + 0.5 - cx) ** 2 + (y + 0.5 - cy) ** 2 + (z + 0.5 - cz) ** 2 > r * r) continue;
+        if (DIGGABLE.has(getBlock(x, y, z)) && !touches(x, y, z, B.water)) setBlockRaw(x, y, z, 0);
+      }
+    }
+  };
+  const count = 4 + ((rnd() * 2) | 0);
+  for (let i = 0, tries = 0; i < count && tries < 500; tries++) {
+    const x0 = 3 + rnd() * (SX - 6), z0 = 3 + rnd() * (SZ - 6);
+    if (!land(x0, z0) || Math.hypot(x0 - SX / 2, z0 - SZ / 2) < 12) continue;
+    i++;
+    let x = x0, y = heights[(x0 | 0) + (z0 | 0) * SX] + 0.5, z = z0, yaw = rnd() * Math.PI * 2;
+    const floor = 2.5 + rnd() * 2;
+    for (let step = 0, len = 70 + rnd() * 40; step < len; step++) {
+      dig(x, y, z, step < 4 ? 1.3 : 1.5 + rnd() * 0.6);
+      yaw += (rnd() - 0.5) * 0.6;
+      const pitch = y > floor + 1 ? -0.6 : (floor - y) * 0.3 + (rnd() - 0.5) * 0.3;   // down, then level
+      const nx = x + Math.cos(yaw) * Math.cos(pitch), nz = z + Math.sin(yaw) * Math.cos(pitch);
+      if (!land(nx, nz)) { yaw += Math.PI * (0.5 + rnd()); continue; }
+      x = nx; z = nz; y = Math.max(1.5, y + Math.sin(pitch));
+    }
+    dig(x, y + 1, z, 2.8);   // the hall
+    if (i > 1 && rnd() < 0.5) continue;
+    // a pool of lava on the hall's lowest floor
+    const X = Math.floor(x), Y = Math.floor(y), Z = Math.floor(z);
+    let low = SY;
+    for (let dz = -3; dz <= 3; dz++) for (let dx = -3; dx <= 3; dx++) {
+      for (let yy = Math.max(1, Y - 3); yy <= Y + 3; yy++) if (getBlock(X + dx, yy, Z + dz) === 0) low = Math.min(low, yy);
+    }
+    for (let dz = -3; dz <= 3; dz++) for (let dx = -3; dx <= 3; dx++) {
+      if (getBlock(X + dx, low, Z + dz) === 0 && getBlock(X + dx, low - 1, Z + dz) !== 0) setBlockRaw(X + dx, low, Z + dz, B.lava);
+    }
+  }
+}
+
+/**
+ * Sinks the ruins of a few little brick houses into the sea, each with a treasure chest inside
+ * and a water ember ore in its floor. Their tallest corners stick out of the water.
+ */
+function sinkRuins(rnd, heights) {
+  const built = [];
+  for (let tries = 0; tries < 600 && built.length < 3; tries++) {
+    const cx = 4 + ((rnd() * (SX - 8)) | 0), cz = 4 + ((rnd() * (SZ - 8)) | 0);
+    let floor = 0;
+    for (let dz = -2; dz <= 2; dz++) for (let dx = -2; dx <= 2; dx++) floor = Math.max(floor, heights[cx + dx + (cz + dz) * SX]);
+    if (floor > WATER - 2 || built.some(([x, z]) => Math.hypot(x - cx, z - cz) < 16)) continue;
+    built.push([cx, cz]);
+    for (let dz = -2; dz <= 2; dz++) for (let dx = -2; dx <= 2; dx++) {
+      const x = cx + dx, z = cz + dz;
+      for (let y = heights[x + z * SX] + 1; y < floor; y++) setBlockRaw(x, y, z, B.sand);
+      setBlockRaw(x, floor, z, B.stone);
+      if (Math.max(Math.abs(dx), Math.abs(dz)) < 2 || (dx === 0 && dz === 2)) continue;   // inside, and the doorway
+      const tall = (Math.abs(dx) === 2 && Math.abs(dz) === 2 ? 4 : 1) + ((rnd() * 3) | 0);
+      for (let k = 1; k <= tall; k++) setBlockRaw(x, floor + k, z, rnd() < 0.8 ? B.brick : B.stone);
+    }
+    setBlockRaw(cx, floor + 1, cz, B.chest);
+    setBlockRaw(cx + (rnd() < 0.5 ? -1 : 1), floor, cz + ((rnd() * 3) | 0) - 1, B.water_ember_ore);
+  }
+}
+
+/**
+ * Hides things to find in the world as it is now: flowers on grass, shells on the beach and
+ * apples in the outside of the trees. Works on any world, so a world saved before there were
+ * finds gets them too.
  */
 function scatterFinds(rnd) {
   const open = (x, y, z) => getBlock(x, y, z) === 0;
@@ -588,28 +858,87 @@ function scatterFinds(rnd) {
     let top = SY - 1;
     while (top > 0 && getBlock(x, top, z) === 0) top--;
     const id = getBlock(x, top, z), r = rnd();
-    if (id === B.grass && open(x, top + 1, z)) {
-      if (r < 0.035) setBlockRaw(x, top + 1, z, rnd() < 0.5 ? B.flower_red : B.flower_yellow);
-      else if (r > 0.9985) setBlockRaw(x, top, z, B.gem_ore);
-    } else if (id === B.sand && top >= WATER && open(x, top + 1, z) && r < 0.05) {
+    if (id === B.grass && open(x, top + 1, z) && r < 0.035) {
+      setBlockRaw(x, top + 1, z, rnd() < 0.5 ? B.flower_red : B.flower_yellow);
+    } else if (id === B.sand && top >= WATER && top <= WATER + 1 && open(x, top + 1, z) && r < 0.05) {
       setBlockRaw(x, top + 1, z, B.shell);
     }
     for (let y = 1; y < top; y++) {
-      const here = getBlock(x, y, z);
-      if (here === B.leaves) {
-        const outside = open(x + 1, y, z) || open(x - 1, y, z) || open(x, y, z + 1) || open(x, y, z - 1) || open(x, y - 1, z);
-        if (outside && rnd() < 0.12) setBlockRaw(x, y, z, B.apple_leaves);
-      } else if (here === B.stone && rnd() < 0.004) {
-        // a little vein of 2 to 5 gem rocks
-        let gx = x, gy = y, gz = z;
-        for (let n = 2 + ((rnd() * 4) | 0); n > 0; n--) {
-          if (getBlock(gx, gy, gz) === B.stone) setBlockRaw(gx, gy, gz, B.gem_ore);
-          const a = (rnd() * 3) | 0, s = rnd() < 0.5 ? -1 : 1;
-          if (a === 0) gx += s; else if (a === 1) gy += s; else gz += s;
-        }
-      }
+      if (getBlock(x, y, z) !== B.leaves) continue;
+      const outside = open(x + 1, y, z) || open(x - 1, y, z) || open(x, y, z + 1) || open(x, y, z - 1) || open(x, y - 1, z);
+      if (outside && rnd() < 0.12) setBlockRaw(x, y, z, B.apple_leaves);
     }
   }
+}
+
+/**
+ * Hides the minerals' ores in the world as it is now, each where its drawing says it is found
+ * and about as rare: coal and copper anywhere, gold in caves and under the desert, emerald on the
+ * mountain tops, the very rare ones on the walls of the deep caves, fire ember beside the lava,
+ * celestium just above the bottom rock. A few coal, copper, gold and emerald ores lie in the open,
+ * so the first finds are easy. Works on any world: a world saved before there were minerals gets
+ * them too, in plain deep stone where it has no caves (but no fire ember without lava).
+ * Water ember is not here: it comes with the sunken ruins.
+ */
+function scatterMinerals(rnd) {
+  const GROUND = new Set([B.grass, B.dirt, B.stone, B.sand, B.snow]);
+  const ground = new Int32Array(SX * SZ);
+  let peak = 0;
+  for (let z = 0; z < SZ; z++) for (let x = 0; x < SX; x++) {
+    let y = SY - 1;
+    while (y > 0 && !GROUND.has(getBlock(x, y, z))) y--;
+    ground[x + z * SX] = y;
+    if (y > WATER + 1) peak = Math.max(peak, y);
+  }
+  const stone = [], wall = [], lavaSide = [], desert = [], peaks = [], grassTops = [], sandTops = [], peakTops = [];
+  for (let z = 0; z < SZ; z++) for (let x = 0; x < SX; x++) {
+    const g = ground[x + z * SX], top = getBlock(x, g, z), open = getBlock(x, g + 1, z) === 0, dry = g > WATER + 1;
+    if (open && top === B.grass) grassTops.push([x, g, z]);
+    if (open && dry && top === B.sand) sandTops.push([x, g, z]);
+    if (dry && g >= peak - 3) {
+      for (let y = g - 3; y <= g; y++) peaks.push([x, y, z]);
+      if (open) peakTops.push([x, g, z]);
+    }
+    for (let y = 1; y < g; y++) {
+      if (getBlock(x, y, z) !== B.stone) continue;
+      const p = [x, y, z];
+      stone.push(p);
+      if (touches(x, y, z, 0)) wall.push(p);
+      if (touches(x, y, z, B.lava)) lavaSide.push(p);
+      if (dry && top === B.sand && y >= g - 8) desert.push(p);
+    }
+  }
+  const below = (list, maxY) => list.filter(p => p[1] <= maxY);
+  // Grows `n` veins of ore `key`, each of `lo` to `hi` blocks, from the first of the places this world has.
+  const veins = (key, n, [lo, hi], ...places) => {
+    const spots = places.find(list => list.length);
+    if (!spots) return;
+    for (let i = 0; i < n; i++) {
+      let [x, y, z] = spots[(rnd() * spots.length) | 0];
+      for (let k = lo + ((rnd() * (hi - lo + 1)) | 0); k > 0; k--) {
+        if (GROUND.has(getBlock(x, y, z))) setBlockRaw(x, y, z, B[key]);
+        const a = (rnd() * 3) | 0, s = rnd() < 0.5 ? -1 : 1;
+        if (a === 0) x += s; else if (a === 1) y = Math.max(1, y + s); else z += s;
+      }
+    }
+  };
+  veins('coal_ore', 45, [3, 6], stone);
+  veins('copper_ore', 40, [3, 6], stone);
+  veins('iron_ore', 30, [2, 5], stone);
+  veins('lapis_ore', 12, [2, 4], below(stone, 7));
+  veins('gold_ore', 8, [2, 3], below(wall, 8), below(stone, 8));
+  veins('gold_ore', 8, [2, 4], desert);
+  veins('redstone_ore', 12, [2, 4], below(wall, 9), below(stone, 7));
+  veins('emerald_ore', 8, [1, 2], peaks);
+  veins('diamond_ore', 6, [1, 3], below(wall, 5), below(stone, 5));
+  veins('ruby_ore', 5, [1, 3], below(wall, 6), below(stone, 5));
+  veins('fire_ember_ore', 6, [1, 2], lavaSide);
+  veins('rainbow_ore', 3, [1, 2], below(wall, 5), below(stone, 4));
+  veins('celestium_ore', 2, [1, 1], below(wall, 2), below(stone, 2));
+  veins('coal_ore', 5, [1, 1], grassTops);
+  veins('copper_ore', 4, [1, 1], grassTops);
+  veins('gold_ore', 4, [1, 1], sandTops);
+  veins('emerald_ore', 2, [1, 1], peakTops);
 }
 
 function surfaceY(x, z) {
@@ -622,6 +951,7 @@ function surfaceY(x, z) {
 // ---------------------------------------------------------------------------
 const SKY = new THREE.Color('#8fd3ff');
 const UNDERWATER = new THREE.Color('#2a6fc0');
+const IN_LAVA = new THREE.Color('#e0601c');
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
@@ -736,7 +1066,7 @@ function buildChunkGeometry(cx, cz) {
     for (const f of FACES) {
       const nid = getMesh(x + f.dir[0], y + f.dir[1], z + f.dir[2]);
       if (!faceVisible(id, nid)) continue;
-      const o = out[blk.liquid ? 1 : 0];
+      const o = out[blk.liquid && !blk.opaque ? 1 : 0];
       const tile = f.dir[1] === 1 ? blk.top : f.dir[1] === -1 ? blk.bottom : blk.side;
       const tu = (tile % ATLAS_COLS) * TILE, tv = Math.floor(tile / ATLAS_COLS) * TILE;
       const ndx = o.pos.length / 3;
@@ -1070,7 +1400,12 @@ function collides(px, py, pz) {
   }
   return false;
 }
-function inWater(v) { return !!BLOCKS[getBlock(Math.floor(v.x), Math.floor(v.y), Math.floor(v.z))]?.liquid; }
+/** The liquid (water or lava) at point `v`, or 0. */
+function liquidAt(v) {
+  const id = getBlock(Math.floor(v.x), Math.floor(v.y), Math.floor(v.z));
+  return BLOCKS[id]?.liquid ? id : 0;
+}
+function inWater(v) { return liquidAt(v) !== 0; }
 
 function findHome() {
   // look for dry land near the middle
@@ -1305,7 +1640,8 @@ class Hud {
     const id = BAG_ITEMS[cursor];
     const find = FINDS.find(f => f.id === id);
     this.bagName.textContent = !find ? BLOCKS[id].name
-      : bag.has(id) ? `${BLOCKS[id].name} × ${bag.get(id)}` : `Not found yet — ${find.hint}`;
+      : (bag.has(id) ? `${BLOCKS[id].name} × ${bag.get(id)}` : `Not found yet — ${find.hint}`)
+        + (find.rarity ? ` (${find.rarity})` : '');
   }
   set flying(on) { this.badgeEl.classList.toggle('show', on); }
   set message(text) {
@@ -1688,11 +2024,12 @@ function renderViews() {
     const r = p.rect, y = H - r.y - r.h;   // WebGL counts from the bottom
     renderer.setViewport(r.x, y, r.w, r.h);
     renderer.setScissor(r.x, y, r.w, r.h);
-    const under = inWater(p.camera.position);
-    scene.fog.color.copy(under ? UNDERWATER : SKY);
-    scene.background.copy(under ? UNDERWATER : SKY);
-    scene.fog.near = under ? 1 : 45;
-    scene.fog.far = under ? 22 : 130;
+    const liquid = liquidAt(p.camera.position);
+    const [color, near, far] = liquid === B.lava ? [IN_LAVA, 0.5, 6] : liquid ? [UNDERWATER, 1, 22] : [SKY, 45, 130];
+    scene.fog.color.copy(color);
+    scene.background.copy(color);
+    scene.fog.near = near;
+    scene.fog.far = far;
     sun.position.copy(p.camera.position).addScaledVector(sunDir, 400);
     sun.lookAt(p.camera.position);
     renderer.render(scene, p.camera);
@@ -1747,7 +2084,7 @@ function saveWorld() {
     for (const p of players) savedSlots[p.slot] = p.snapshot();
     localStorage.setItem(SAVE_KEY, JSON.stringify({
       size: [SX, SY, SZ], data: bytesToB64(Uint8Array.from(rle)),
-      players: savedSlots, home: [home.x, home.y, home.z], finds: 1,
+      players: savedSlots, home: [home.x, home.y, home.z], finds: 1, minerals: 1,
     }));
     worldDirty = false;
   } catch (e) {
@@ -1770,7 +2107,9 @@ function loadWorld() {
     }
     if (o !== out.length) return false;
     blocks = out;
-    if (!s.finds) scatterFinds(mulberry32((Math.random() * 1e9) | 0));   // saved before there were finds
+    const rnd = mulberry32((Math.random() * 1e9) | 0);
+    if (!s.finds) scatterFinds(rnd);         // saved before there were finds
+    if (!s.minerals) scatterMinerals(rnd);   // or before there were minerals
     home.set(...s.home);
     if (s.players) Object.assign(savedSlots, s.players);
     else if (s.player) savedSlots[0] = [...s.player.slice(0, 6), s.selected || 0];   // a single-player save
@@ -1993,6 +2332,7 @@ frame();
 // debug/test hook
 window.easycraft = {
   players, keyboard, Pads, PadInput, addPlayer, removePlayer, startPlaying, pause, newWorld, getBlock, changeBlock, B, BLOCKS,
+  ICONS, FINDS, SX, SY, SZ,
 };
 </script>
 <script>

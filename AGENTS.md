@@ -29,19 +29,30 @@ Every fact lives in exactly one of these; the others link to it.
 ## Invariants
 
 - **No ES modules, no `import`.** Chrome won't run them from `file://`, and the browser checks can't catch it. See `D_double_click`.
+- **A script uses at load time only what the scripts before it define.** Inside functions, any name goes; a top-level call into a later file throws before the game starts.
 - **Block ids are append-only.** Saved worlds store them; reordering or removing a `defBlock` line scrambles every saved world.
 - **A per-player scene object goes on that player's layer.** On layer 0 it shows in every split view; the layering is in architecture.md.
 - **Players read devices only through their input source.** A `Player` touching `keyboard` or `Pads` directly breaks the other device kind.
 
 ## Module map
 
-- `index.html` — the whole game: page, styles, textures, world, mesher, player, bag, saving.
+- `index.html` — the page and its styles; loads the scripts below, in this order.
+- `js/textures.js` — the seeded random and the painted texture atlas.
+- `js/blocks.js` — the block kinds (`defBlock`), the hotbar and the finds.
+- `js/world.js` — the world's blocks and the generator: terrain, desert, caves, ruins, trees, finds, minerals.
+- `js/render.js` — the three.js scene: chunk meshing, sea, clouds, sun.
+- `js/avatar.js`, `js/effects.js` — players' bodies; sounds and break particles.
+- `js/physics.js` — picking blocks, changing them, collisions, home.
+- `js/input.js` — `KeyboardInput`, `Pads`, `PadInput` and the DOM handlers that feed the keyboard.
+- `js/hud.js`, `js/player.js` — a player's HUD and bag; the `Player` component.
+- `js/screen.js`, `js/save.js`, `js/menu.js` — split screen and joining; saving; the menu.
+- `js/main.js` — starts the game and runs the frame loop; loaded last.
 - `vendor/three/` — three.js 0.160.1 `three.min.js`, the classic global-`THREE` build, and its MIT licence.
 - `design/` — the lazy design docs and the doc-layer tripwire.
 
 ## Conventions
 
-- **Plain browser JavaScript, no build step.** One classic `'use strict'` `<script>` in `index.html`, over the global `THREE`.
+- **Plain browser JavaScript, no build step.** Classic `'use strict'` scripts under `js/`, over the global `THREE`, sharing their top-level names.
 - **Third-party code is vendored and pinned** under `vendor/<name>/` with its licence, never loaded from a CDN; the Google Fonts stylesheet is the one fetch, optional (falls back to `system-ui`).
 - **Art is procedural.** Textures are painted into the atlas by code; a new block adds a painter, not an image file.
 - **Verify in a real browser.** Playwright MCP over a local HTTP server; `window.easycraft` exposes hooks for scripted checks, and controllers are faked by replacing `navigator.getGamepads`.

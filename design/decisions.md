@@ -16,7 +16,7 @@ above, open the doc comments it touches and cut what they already say, then cut 
 ## D_double_click — Why a classic-script page with vendored three.js r160 rather than ES modules?
 
 **Double-click to play** means the page runs from `file://`, and Chrome will not load a module
-script from there (`R_file_url_scripts`). So `index.html` is one classic `<script>` on top of
+script from there (`R_file_url_scripts`). So the game is classic `<script src>` files under `js/`, on top of
 `vendor/three/three.min.js`, which defines a global `THREE`. That build exists only up to
 three.js 0.160.1 (`R_three_classic_build`), so 0.160.1 is pinned. Why not three.js from a CDN:
 the game would need the network at every start, and a dead link is a blank page. Why not a

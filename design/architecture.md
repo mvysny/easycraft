@@ -36,4 +36,4 @@ doc-comment content has crept in.
 
 ## Where to start reading
 
-`index.html`, from the `Player` class down to the end — the classes, the split-screen layout, the menu and the main loop. Above it are the world, the textures and the mesher, which don't know players exist.
+`js/main.js`, then `js/player.js` and the files after it — the split-screen layout, saving and the menu. The files before `js/player.js` — textures, blocks, world, rendering — don't know players exist.

@@ -72,7 +72,7 @@ has a colour and a name tag that shows through walls, so friends can find each o
 
 ## Copying it
 
-The game is `index.html` plus the `vendor/` folder beside it; copy both. three.js (MIT, its
+The game is `index.html` plus the `js/` and `vendor/` folders beside it; copy all three. three.js (MIT, its
 licence in `vendor/three/LICENSE`) is the only third-party code.
 
 ## See also

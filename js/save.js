@@ -11,18 +11,34 @@ function bytesToB64(bytes) {
   for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
   return btoa(s);
 }
+/** Packs `bytes` as base64 of (value, run length) pairs. */
+function packRuns(bytes) {
+  const rle = [];
+  let prev = bytes[0], run = 0;
+  for (let i = 0; i < bytes.length; i++) {
+    if (bytes[i] === prev && run < 255) run++;
+    else { rle.push(prev, run); prev = bytes[i]; run = 1; }
+  }
+  rle.push(prev, run);
+  return bytesToB64(Uint8Array.from(rle));
+}
+/** Unpacks what `packRuns` made into one world's worth of cells, or null if it doesn't fit or holds a value ≥ `limit`. */
+function unpackRuns(b64, limit) {
+  const bin = atob(b64);
+  const out = new Uint8Array(SX * SY * SZ);
+  let o = 0;
+  for (let i = 0; i < bin.length; i += 2) {
+    const v = bin.charCodeAt(i), run = bin.charCodeAt(i + 1);
+    if (v >= limit || o + run > out.length) return null;
+    out.fill(v, o, o + run); o += run;
+  }
+  return o === out.length ? out : null;
+}
 function saveWorld() {
   try {
-    const rle = [];
-    let prev = blocks[0], run = 0;
-    for (let i = 0; i < blocks.length; i++) {
-      if (blocks[i] === prev && run < 255) run++;
-      else { rle.push(prev, run); prev = blocks[i]; run = 1; }
-    }
-    rle.push(prev, run);
     for (const p of players) savedSlots[p.slot] = p.snapshot();
     localStorage.setItem(SAVE_KEY, JSON.stringify({
-      size: [SX, SY, SZ], data: bytesToB64(Uint8Array.from(rle)),
+      size: [SX, SY, SZ], data: packRuns(blocks), fluid: packRuns(fluid),
       players: savedSlots, home: [home.x, home.y, home.z], finds: 1, minerals: 1,
     }));
     worldDirty = false;
@@ -36,16 +52,12 @@ function loadWorld() {
     if (!raw) return false;
     const s = JSON.parse(raw);
     if (s.size.join() !== [SX, SY, SZ].join()) return false;
-    const bin = atob(s.data);
-    const out = new Uint8Array(SX * SY * SZ);
-    let o = 0;
-    for (let i = 0; i < bin.length; i += 2) {
-      const id = bin.charCodeAt(i), run = bin.charCodeAt(i + 1);
-      if (id >= BLOCKS.length || o + run > out.length) return false;
-      out.fill(id, o, o + run); o += run;
-    }
-    if (o !== out.length) return false;
+    const out = unpackRuns(s.data, BLOCKS.length);
+    if (!out) return false;
     blocks = out;
+    const flow = s.fluid && unpackRuns(s.fluid, HEAD + SY);
+    if (flow) fluid = flow;
+    else { fluid = new Uint8Array(SX * SY * SZ); markSea(); }   // saved before liquids flowed
     const rnd = mulberry32((Math.random() * 1e9) | 0);
     if (!s.finds) scatterFinds(rnd);         // saved before there were finds
     if (!s.minerals) scatterMinerals(rnd);   // or before there were minerals
@@ -61,6 +73,7 @@ function loadWorld() {
 function newWorld() {
   generateWorld((Math.random() * 1e9) | 0);
   findHome();
+  wakeAllLiquids();
   for (const k in savedSlots) delete savedSlots[k];
   for (const p of players) {
     p.yaw = Math.PI * 0.25; p.pitch = -0.15;

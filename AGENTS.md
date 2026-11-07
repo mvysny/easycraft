@@ -43,6 +43,7 @@ Every fact lives in exactly one of these; the others link to it.
 - `js/render.js` — the three.js scene: chunk meshing, sea, clouds, sun.
 - `js/avatar.js`, `js/effects.js` — players' bodies; sounds and break particles.
 - `js/physics.js` — picking blocks, changing them, collisions, home.
+- `js/liquids.js` — water and lava flowing: pouring down, running a few blocks, the sea filling what is dug beside it.
 - `js/input.js` — `KeyboardInput`, `Pads`, `PadInput` and the DOM handlers that feed the keyboard.
 - `js/specimens.js` — the minerals' bag pictures: crystals, cut stones, lumps, painted over their block's texture.
 - `js/hud.js`, `js/player.js` — a player's HUD and bag; the `Player` component.

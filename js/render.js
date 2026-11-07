@@ -117,17 +117,23 @@ function buildChunkGeometry(cx, cz) {
     if (!id) continue;
     const blk = BLOCKS[id];
     if (blk.shape !== 'cube') { pushShape(out[0], blk, x, y, z); continue; }
-    const lowerTop = blk.liquid && getMesh(x, y + 1, z) !== id;
+    const top = blk.liquid ? liquidHeight(x, y, z) : 1;
     for (const f of FACES) {
       const nid = getMesh(x + f.dir[0], y + f.dir[1], z + f.dir[2]);
-      if (!faceVisible(id, nid)) continue;
+      let bottom = 0;   // a side face starts here
+      if (blk.liquid && nid === id) {
+        // beside more of itself, only the part standing above a lower neighbour shows
+        if (f.dir[1] !== 0) continue;
+        bottom = liquidHeight(x + f.dir[0], y, z + f.dir[2]);
+        if (bottom >= top - 0.01) continue;
+      } else if (!faceVisible(id, nid)) continue;
       const o = out[blk.liquid && !blk.opaque ? 1 : 0];
       const tile = f.dir[1] === 1 ? blk.top : f.dir[1] === -1 ? blk.bottom : blk.side;
       const tu = (tile % ATLAS_COLS) * TILE, tv = Math.floor(tile / ATLAS_COLS) * TILE;
       const ndx = o.pos.length / 3;
       for (let ci = 0; ci < 4; ci++) {
         const c = f.corners[ci];
-        o.pos.push(x + c[0], y + c[1] - (lowerTop && c[1] === 1 ? 0.1 : 0), z + c[2]);
+        o.pos.push(x + c[0], y + (c[1] ? top : f.dir[1] ? 0 : bottom), z + c[2]);
         const u = (tu + UV_INSET + c[3] * (TILE - 2 * UV_INSET)) / ATLAS_W;
         const v = 1 - (tv + UV_INSET + (1 - c[4]) * (TILE - 2 * UV_INSET)) / ATLAS_H;
         o.uv.push(u, v);

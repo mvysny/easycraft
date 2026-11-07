@@ -26,7 +26,9 @@ Or open `index.html` in a browser (Chrome, Firefox, Edge or Safari); no internet
 | Go back home | H | Back |
 | Menu | Esc | Start |
 
-Walking into a one-block step hops up it. The world saves itself in the browser; **New world** in
+Walking into a one-block step hops up it. Water and lava flow: they pour over edges and run a few
+blocks over flat ground, and the sea slowly fills any tunnel or hole you dig beside it, up to sea
+level. The world saves itself in the browser; **New world** in
 the menu starts over.
 
 ## Things to find

@@ -17,6 +17,7 @@ doc-comment content has crept in.
 - An input source (`KeyboardInput`, `PadInput`) turns raw devices into the same per-frame shape — movement, look deltas, held buttons, a bag-cursor direction, one-shot actions — so `Player` never knows which device it has. The DOM handlers feed the single `keyboard`; `Pads` polls the Gamepad API. What an action means is the `Player`'s call: with its bag open, the same input steers the bag's cursor and the player stands still.
 - A block says what taking it yields (`drop`) and what stays behind (`becomes`); a `Player` keeps its own bag (find → count) and hotbar, and both travel in its slot's save. Building blocks are never counted (`D_endless_blocks`).
 - `generateWorld` shapes the island, then adds the desert, caves (with lava), sunken ruins (with chests) and trees; those come only with a new world. The finds come from `scatterFinds` and the minerals' ores from `scatterMinerals`, which work on any world: a save from before either existed (no `finds` / `minerals` flag) gets them on load.
+- Liquids flow by themselves: `changeBlock` wakes the cells around a change, and on its next step each liquid settles only the woken cells, writing `blocks` and `fluid` directly (`D_sea_fills`). A loaded or new world wakes every liquid that could move (`wakeAllLiquids`).
 - Three.js layers keep per-player objects in the right views: layer 0 is seen by every camera, a player's outline only by their own, their body by everyone else's. The layer numbers are `HIGHLIGHT_LAYER` and `AVATAR_LAYER`.
 - `players` is sorted by slot (0–3, which fixes colour and save spot); `addPlayer` / `removePlayer` are the only way in or out, and both re-run `relayout` and `renderMenu`.
 
@@ -26,7 +27,7 @@ doc-comment content has crept in.
 
 1. `Pads.poll()` snapshots every controller, so "pressed" means "went down this frame".
 2. `handlePadsForMenu` handles join (A), leave (B), play and pause (Start), before any player reads its pad.
-3. While playing, each `Player.update` reads its input and moves, breaks and places; changed chunks are queued.
+3. While playing, each `Player.update` reads its input and moves, breaks and places; then the liquids whose step is due flow (`flowLiquids`). Changed chunks are queued.
 4. Up to four queued chunks are re-meshed.
 5. `renderViews` draws the scene once per player into its own viewport and scissor rectangle, setting fog and sun for that player's camera first.
 

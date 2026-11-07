@@ -34,3 +34,14 @@ treasure hunt, and a gem means something because it ran out. Why not count every
 survival game: gold, glass and the colours would need a way to be made, which is crafting, a
 menu-heavy game of its own. Why not a sticker collection you cannot place: building with what you
 found is the reward. Reversing this means a starter kit, crafting and a much fuller bag screen.
+
+## D_sea_fills — Why does the sea fill whatever is dug beside it, when placed water runs only five blocks?
+
+A tunnel dug from the sea should fill up, as at a real seaside. But water a child puts on a hill
+must not drown the island, so a placed block is a plain source: it runs a few blocks, stops, and
+dries up when taken. The sea is a source that knows its height (`fluid` = `HEAD + h`): it fills
+everything open beside and below it up to h, and what it fills is sea too — a cave below sea level
+floods, a shaft fills to sea level. Lava pools are plain: they lie on hall floors with open floor
+beside them, and a pool that knew its height would flood the hall. Why not water that keeps its
+volume: the sea would drain into every hole and shuffle forever. The cost: water let into a closed
+space can't be taken out block by block, each gap refills; you fill it with blocks instead.

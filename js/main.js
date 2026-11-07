@@ -5,6 +5,7 @@
 // Main loop
 // ---------------------------------------------------------------------------
 if (!loadWorld()) { generateWorld((Math.random() * 1e9) | 0); findHome(); }
+wakeAllLiquids();
 rebuildAll();
 addPlayer(keyboard);
 saveWorld();
@@ -14,7 +15,10 @@ function frame() {
   const dt = Math.min(clock.getDelta(), 0.05);
   Pads.poll();
   handlePadsForMenu();
-  if (playing) for (const p of players) p.update(dt);
+  if (playing) {
+    for (const p of players) p.update(dt);
+    flowLiquids(dt);
+  }
 
   // rebuild a few changed chunks per frame
   let n = 0;
@@ -33,6 +37,6 @@ frame();
 
 // debug/test hook
 window.easycraft = {
-  players, keyboard, Pads, PadInput, addPlayer, removePlayer, startPlaying, pause, newWorld, getBlock, changeBlock, B, BLOCKS,
+  players, keyboard, Pads, PadInput, addPlayer, removePlayer, startPlaying, pause, newWorld, getBlock, changeBlock, liquidHeight, flowLiquids, B, BLOCKS,
   ICONS, FINDS, SX, SY, SZ,
 };

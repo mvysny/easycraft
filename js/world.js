@@ -10,6 +10,14 @@ const WATER = 8;                    // sea level
 // World data + generation
 // ---------------------------------------------------------------------------
 let blocks = new Uint8Array(SX * SY * SZ);
+/**
+ * How the liquid in each cell flows, beside `blocks` (liquids.js runs it): 0 for a source — a
+ * placed block, a lava pool — and for every cell that is not liquid; 1..15 for liquid running
+ * that many blocks from its source; `HEAD + h` for the sea and what has filled from it, a source
+ * that fills everything open beside and below it up to height h. Saved with the world.
+ */
+let fluid = new Uint8Array(SX * SY * SZ);
+const HEAD = 32;
 const index = (x, y, z) => x + SX * (z + SZ * y);
 const inBounds = (x, y, z) => x >= 0 && y >= 0 && z >= 0 && x < SX && y < SY && z < SZ;
 const getBlock = (x, y, z) => inBounds(x, y, z) ? blocks[index(x, y, z)] : 0;
@@ -20,12 +28,24 @@ const getMesh = (x, y, z) => {
   if (x < 0 || z < 0 || x >= SX || z >= SZ) return y <= WATER ? B.water : 0;
   return getBlock(x, y, z);
 };
-function setBlockRaw(x, y, z, id) { if (inBounds(x, y, z)) blocks[index(x, y, z)] = id; }
+/** Sets a block without redrawing or saving; whatever it is, it starts as a source (`fluid` 0). */
+function setBlockRaw(x, y, z, id) {
+  if (!inBounds(x, y, z)) return;
+  const i = index(x, y, z);
+  blocks[i] = id; fluid[i] = 0;
+}
+/** Makes every water at or below sea level the sea, which fills what is dug beside it (an old save has no `fluid`). */
+function markSea() {
+  for (let y = 0; y <= WATER; y++) for (let i = y * SX * SZ; i < (y + 1) * SX * SZ; i++) {
+    if (blocks[i] === B.water) fluid[i] = HEAD + WATER;
+  }
+}
 const NEIGHBORS = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]];
 const touches = (x, y, z, id) => NEIGHBORS.some(([a, b, c]) => getBlock(x + a, y + b, z + c) === id);
 
 function generateWorld(seed) {
   blocks = new Uint8Array(SX * SY * SZ);
+  fluid = new Uint8Array(SX * SY * SZ);
   const rnd = mulberry32(seed);
   // value noise on a lattice
   const G = 64, grid = new Float32Array(G * G);
@@ -88,6 +108,7 @@ function generateWorld(seed) {
   }
   scatterFinds(rnd);
   scatterMinerals(rnd);
+  markSea();
 }
 
 /** Turns a patch of land away from the middle into desert: sand down to the stone. */

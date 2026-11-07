@@ -37,6 +37,7 @@ let worldDirty = false;
 function changeBlock(x, y, z, id) {
   setBlockRaw(x, y, z, id);
   markDirtyAround(x, z);
+  wakeLiquids(x, y, z);
   worldDirty = true;
 }
 
@@ -57,10 +58,11 @@ function collides(px, py, pz) {
   }
   return false;
 }
-/** The liquid (water or lava) at point `v`, or 0. */
+/** The liquid (water or lava) at point `v`, or 0; above a shallow run's surface is out of it. */
 function liquidAt(v) {
-  const id = getBlock(Math.floor(v.x), Math.floor(v.y), Math.floor(v.z));
-  return BLOCKS[id]?.liquid ? id : 0;
+  const x = Math.floor(v.x), y = Math.floor(v.y), z = Math.floor(v.z);
+  const id = getBlock(x, y, z);
+  return BLOCKS[id]?.liquid && v.y - y < liquidHeight(x, y, z) ? id : 0;
 }
 function inWater(v) { return liquidAt(v) !== 0; }
 

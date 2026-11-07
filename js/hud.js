@@ -5,6 +5,8 @@
 // Player HUD: crosshair, hotbar, toasts — laid over the player's part of the screen.
 // ---------------------------------------------------------------------------
 function blockIcon(id) {
+  const specimen = specimenIcon(BLOCKS[id].key);   // a mineral looks like the stone, not a block
+  if (specimen) return specimen;
   const c = document.createElement('canvas');
   c.width = c.height = 48;
   const g = c.getContext('2d');

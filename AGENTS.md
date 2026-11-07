@@ -44,6 +44,7 @@ Every fact lives in exactly one of these; the others link to it.
 - `js/avatar.js`, `js/effects.js` — players' bodies; sounds and break particles.
 - `js/physics.js` — picking blocks, changing them, collisions, home.
 - `js/input.js` — `KeyboardInput`, `Pads`, `PadInput` and the DOM handlers that feed the keyboard.
+- `js/specimens.js` — the minerals' bag pictures: crystals, cut stones, lumps, painted over their block's texture.
 - `js/hud.js`, `js/player.js` — a player's HUD and bag; the `Player` component.
 - `js/screen.js`, `js/save.js`, `js/menu.js` — split screen and joining; saving; the menu.
 - `js/main.js` — starts the game and runs the frame loop; loaded last.

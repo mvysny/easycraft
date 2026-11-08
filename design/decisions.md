@@ -35,13 +35,19 @@ survival game: gold, glass and the colours would need a way to be made, which is
 menu-heavy game of its own. Why not a sticker collection you cannot place: building with what you
 found is the reward. Reversing this means a starter kit, crafting and a much fuller bag screen.
 
-## D_sea_fills — Why does the sea fill whatever is dug beside it, when placed water runs only five blocks?
+## D_sea_fills — Why does the sea fill whatever is dug beside it, when placed water moves as one block?
 
-A tunnel dug from the sea should fill up, as at a real seaside. But water a child puts on a hill
-must not drown the island, so a placed block is a plain source: it runs a few blocks, stops, and
-dries up when taken. The sea is a source that knows its height (`fluid` = `HEAD + h`): it fills
-everything open beside and below it up to h, and what it fills is sea too — a cave below sea level
-floods, a shaft fills to sea level. Lava pools are plain: they lie on hall floors with open floor
-beside them, and a pool that knew its height would flood the hall. Why not water that keeps its
-volume: the sea would drain into every hole and shuffle forever. The cost: water let into a closed
-space can't be taken out block by block, each gap refills; you fill it with blocks instead.
+A tunnel dug from the sea should fill up, as at a real seaside. The sea is a source that knows its
+height (`fluid` = `HEAD + h`): it fills everything open beside and below it up to h, and what it
+fills is sea too — a cave below sea level floods, a shaft fills to sea level. But water a child
+puts on a hill must not drown the island, so a placed block never makes more water: it falls, and
+rolls toward the nearest drop within five blocks of flat ground, until it rests. One block placed
+is one block in the world; a pit fills layer by layer, and water that reaches the sea joins it.
+Why not let it run a few blocks, as lava does: on the island's 1-block terraces each drop starts a
+fresh run, and the water washed down every terrace to the sea. Why not volume for the sea too: it
+would drain into every hole and shuffle forever; a placed block only moves toward a drop, so it
+always comes to rest. Lava pools stay plain sources running two blocks: they lie on hall floors
+with open floor beside them, and a pool that moved or knew its height would empty or flood the
+hall. The costs: placed water makes no streams or waterfalls; it hops a cell a step rather than
+gliding; water let into a closed space from the sea can't be taken out block by block, each gap
+refills; you fill it with blocks instead.

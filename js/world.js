@@ -12,9 +12,10 @@ const WATER = 8;                    // sea level
 let blocks = new Uint8Array(SX * SY * SZ);
 /**
  * How the liquid in each cell flows, beside `blocks` (liquids.js runs it): 0 for a source — a
- * placed block, a lava pool — and for every cell that is not liquid; 1..15 for liquid running
- * that many blocks from its source; `HEAD + h` for the sea and what has filled from it, a source
- * that fills everything open beside and below it up to height h. Saved with the world.
+ * placed block of water, which moves downhill as one block, or a lava pool, which runs a few
+ * blocks — and for every cell that is not liquid; 1..15 for liquid running that many blocks from
+ * its source; `HEAD + h` for the sea and what has filled from it, a source that fills everything
+ * open beside and below it up to height h. Saved with the world.
  */
 let fluid = new Uint8Array(SX * SY * SZ);
 const HEAD = 32;

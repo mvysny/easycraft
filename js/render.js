@@ -1,4 +1,4 @@
-// The three.js scene: chunk meshes of the world, the sea, clouds and sun.
+// The three.js scene: chunk meshes of the world, the sea and clouds.
 'use strict';
 
 // ---------------------------------------------------------------------------
@@ -25,16 +25,20 @@ scene.fog = new THREE.Fog(SKY.clone(), 45, 130);
 const HIGHLIGHT_LAYER = 1, AVATAR_LAYER = 5;
 function setLayer(obj, layer) { obj.traverse(o => o.layers.set(layer)); }
 
+// The scenery's materials, whose colours the night dims (`updateSky`); `daylit` adds one.
+const daylitMats = [];
+function daylit(mat) { mat.userData.dayColor = mat.color.clone(); daylitMats.push(mat); return mat; }
+
 const atlasTex = new THREE.CanvasTexture(atlasCanvas);
 atlasTex.magFilter = THREE.NearestFilter;
 atlasTex.minFilter = THREE.NearestFilter;
 atlasTex.generateMipmaps = false;
 atlasTex.colorSpace = THREE.SRGBColorSpace;
 
-const matSolid = new THREE.MeshBasicMaterial({ map: atlasTex, vertexColors: true, alphaTest: 0.5 });
-const matWater = new THREE.MeshBasicMaterial({
+const matSolid = daylit(new THREE.MeshBasicMaterial({ map: atlasTex, vertexColors: true, alphaTest: 0.5 }));
+const matWater = daylit(new THREE.MeshBasicMaterial({
   map: atlasTex, vertexColors: true, transparent: true, opacity: 0.7, depthWrite: false, side: THREE.DoubleSide,
-});
+}));
 
 // ---------------------------------------------------------------------------
 // Meshing: one opaque + one water mesh per 16x16 chunk, hidden faces culled,
@@ -183,7 +187,7 @@ function markDirtyAround(x, z) {
 }
 
 // ---------------------------------------------------------------------------
-// Scenery: sea around the island, clouds, sun
+// Scenery: sea around the island, clouds
 // ---------------------------------------------------------------------------
 {
   // Same look as the water blocks: see-through water over a sandy floor.
@@ -196,8 +200,8 @@ function markDirtyAround(x, z) {
   seaTex.magFilter = seaTex.minFilter = THREE.NearestFilter;
   seaTex.generateMipmaps = false;
   seaTex.colorSpace = THREE.SRGBColorSpace;
-  const seaMat = new THREE.MeshBasicMaterial({ map: seaTex, transparent: true, opacity: 0.7, depthWrite: false });
-  const floorMat = new THREE.MeshBasicMaterial({ color: BLOCKS[B.sand].color });
+  const seaMat = daylit(new THREE.MeshBasicMaterial({ map: seaTex, transparent: true, opacity: 0.7, depthWrite: false }));
+  const floorMat = daylit(new THREE.MeshBasicMaterial({ color: BLOCKS[B.sand].color }));
   const far = 400;
   const strips = [
     [-far, -far, SX + far, 0], [-far, SZ, SX + far, SZ + far],   // north / south
@@ -220,7 +224,7 @@ function markDirtyAround(x, z) {
 const clouds = new THREE.Group();
 {
   const rnd = mulberry32(99);
-  const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.92, fog: false });
+  const mat = daylit(new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.92, fog: false }));
   for (let i = 0; i < 22; i++) {
     const cloud = new THREE.Group();
     const parts = 2 + ((rnd() * 3) | 0);
@@ -234,13 +238,5 @@ const clouds = new THREE.Group();
   }
   scene.add(clouds);
 }
-const sunDir = new THREE.Vector3(0.5, 0.75, -0.45).normalize();
-const sun = new THREE.Mesh(new THREE.PlaneGeometry(36, 36), new THREE.MeshBasicMaterial({ color: '#fff3a0', fog: false }));
-const sunGlow = new THREE.Mesh(new THREE.PlaneGeometry(56, 56),
-  new THREE.MeshBasicMaterial({ color: '#fff8d0', transparent: true, opacity: 0.35, fog: false, depthWrite: false }));
-sunGlow.position.z = -0.5;
-sun.add(sunGlow);
-scene.add(sun);
-
 const highlightGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(1.004, 1.004, 1.004));
 const highlightMat = new THREE.LineBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.55 });

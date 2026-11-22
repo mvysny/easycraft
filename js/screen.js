@@ -48,13 +48,13 @@ function renderViews() {
     renderer.setViewport(r.x, y, r.w, r.h);
     renderer.setScissor(r.x, y, r.w, r.h);
     const liquid = liquidAt(p.camera.position);
-    const [color, near, far] = liquid === B.lava ? [IN_LAVA, 0.5, 6] : liquid ? [UNDERWATER, 1, 22] : [SKY, 45, 130];
+    const [color, near, far] = liquid === B.lava ? [IN_LAVA, 0.5, 6]
+      : liquid ? [skyFog.water, 1, 22] : [skyFog.color, skyFog.near, skyFog.far];
     scene.fog.color.copy(color);
     scene.background.copy(color);
     scene.fog.near = near;
     scene.fog.far = far;
-    sun.position.copy(p.camera.position).addScaledVector(sunDir, 400);
-    sun.lookAt(p.camera.position);
+    placeSky(p.camera);
     renderer.render(scene, p.camera);
   }
 }

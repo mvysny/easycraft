@@ -47,6 +47,18 @@ the treasure you found is the punishment the promise rules out. Hearts don't hea
 ends a round, and home is the fresh start. Why not hunger, night or counted blocks, as survival
 games have: each is a chore before the fun (`D_endless_blocks`).
 
+## D_night — Why does night dim the whole scene by one colour, rather than light it block by block?
+
+Each block's brightness is baked into its mesh as vertex colours — face shade and corner
+shadows — and three.js's basic material ignores lights. So night multiplies every scenery
+material, avatar and break bit by one `daylight` colour and changes the sky and fog with it: a
+few lines, and no re-meshing as the sun moves. The cost: nothing lights the dark — no torches,
+no glowing lava — and a cave is as bright as the open. Lamps would need light flood-filled from
+each light block and baked into the mesh beside the shading, re-meshed as it changes. Why gentle
+nights, dark only on some survival nights: **Gentle for young kids** — a moonlit night you can
+still build in; a dark one is a survival world's surprise, drawn at noon so it is settled before
+dusk, and saved so a reload doesn't change tonight.
+
 ## D_sea_fills — Why does the sea fill whatever is dug beside it, when placed water moves as one block?
 
 A tunnel dug from the sea should fill up, as at a real seaside. The sea is a source that knows its

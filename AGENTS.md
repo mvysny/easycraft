@@ -10,7 +10,7 @@ you, unless you start a survival world, where long falls and friends' hits cost 
 
 ## Promises
 
-- **Gentle for young kids.** Nothing scares or punishes: no monsters, hunger or night, and no way to get stuck or lost; damage only in a survival world, which a new world opts into, and running out of hearts only sends you home.
+- **Gentle for young kids.** Nothing scares or punishes: no monsters or hunger, and no way to get stuck or lost; nights are moonlit and gentle, dark only on some survival nights; damage only in a survival world, which a new world opts into, and running out of hearts only sends you home.
 - **Double-click to play.** Opens from `file://` with no install, server, build step or network.
 - **Original, not a clone.** Its own name and its own procedurally painted art; nothing copied from an existing game.
 
@@ -41,7 +41,8 @@ Every fact lives in exactly one of these; the others link to it.
 - `js/textures.js` — the seeded random and the painted texture atlas.
 - `js/blocks.js` — the block kinds (`defBlock`), the hotbar and the finds.
 - `js/world.js` — the world's blocks and the generator: terrain, desert, caves, ruins, trees, finds, minerals.
-- `js/render.js` — the three.js scene: chunk meshing, sea, clouds, sun.
+- `js/render.js` — the three.js scene: chunk meshing, sea, clouds.
+- `js/sky.js` — the time of day: the clock, sun, moon and stars, and how far the night dims the world.
 - `js/avatar.js`, `js/effects.js` — players' bodies; sounds and break particles.
 - `js/physics.js` — picking blocks, changing them, collisions, home.
 - `js/liquids.js` — water and lava flowing: pouring down, running a few blocks, the sea filling what is dug beside it.

@@ -40,6 +40,7 @@ function saveWorld() {
     localStorage.setItem(SAVE_KEY, JSON.stringify({
       size: [SX, SY, SZ], data: packRuns(blocks), fluid: packRuns(fluid),
       players: savedSlots, home: [home.x, home.y, home.z], finds: 1, minerals: 1, survival: survival ? 1 : 0,
+      time: daySeconds, dark: darkNight ? 1 : 0,
     }));
     worldDirty = false;
   } catch (e) {
@@ -63,6 +64,8 @@ function loadWorld() {
     if (!s.minerals) scatterMinerals(rnd);   // or before there were minerals
     home.set(...s.home);
     survival = !!s.survival;
+    daySeconds = s.time >= 0 && s.time < DAY_SECONDS + NIGHT_SECONDS ? s.time : MORNING;
+    darkNight = survival && !!s.dark;
     if (s.players) Object.assign(savedSlots, s.players);
     else if (s.player) savedSlots[0] = [...s.player.slice(0, 6), s.selected || 0];   // a single-player save
     return true;
@@ -74,6 +77,7 @@ function loadWorld() {
 /** Replaces the world with a freshly generated one; `mode` is 'creative' or 'survival'. */
 function newWorld(mode) {
   survival = mode === 'survival';
+  daySeconds = MORNING; darkNight = false;
   generateWorld((Math.random() * 1e9) | 0);
   findHome();
   wakeAllLiquids();

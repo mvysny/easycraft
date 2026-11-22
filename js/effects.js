@@ -77,7 +77,7 @@ function playHurt() {
 // ---------------------------------------------------------------------------
 const particles = [];
 const particleGeo = new THREE.BoxGeometry(0.14, 0.14, 0.14);
-function burst(x, y, z, id) { spray(x, y, z, BLOCKS[id].color, 0); }
+function burst(x, y, z, id) { spray(x, y, z, new THREE.Color(BLOCKS[id].color).multiply(daylight), 0); }
 /** Bits of `color` flying out of the block-sized box at (x, y, z), seen only by the cameras that see `layer`. */
 function spray(x, y, z, color, layer) {
   const mat = new THREE.MeshBasicMaterial({ color, transparent: true });

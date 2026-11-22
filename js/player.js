@@ -403,6 +403,7 @@ class Player {
     // a hurt player blushes red for a moment, so the hitter sees the hit land
     this.hurtGlow = Math.max(0, this.hurtGlow - dt * 3);
     a.glow.value = 0.65 * this.hurtGlow;
+    a.mat.color.copy(daylight);
   }
   updateHighlight() {
     const hit = playing && this.bagCursor === null ? this.aim().block : null;

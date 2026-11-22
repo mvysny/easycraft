@@ -45,6 +45,12 @@ you. In **Survival** everyone has ten hearts, shown above their hotbar:
 
 The building blocks stay endless in survival too.
 
+## Day and night
+
+A day lasts ten minutes: seven of daylight, an orange sunset, then three minutes of night. Nights
+are gentle — a moon, stars and a blue glow, and you can still see to build. In a survival world,
+about half the nights have no moon and are properly dark: you see what is near you, and the stars.
+
 ## Things to find
 
 The island hides red and yellow flowers in the grass, seashells on the beach and apples in the

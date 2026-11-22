@@ -18,7 +18,9 @@ function frame() {
   if (playing) {
     for (const p of players) p.update(dt);
     flowLiquids(dt);
+    advanceDay(dt, survival);
   }
+  updateSky();
 
   // rebuild a few changed chunks per frame
   let n = 0;

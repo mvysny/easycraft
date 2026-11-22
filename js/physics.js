@@ -7,6 +7,7 @@ const REACH = 6;                    // how far you can reach, in blocks
 // Looking at blocks (voxel ray march from a camera)
 // ---------------------------------------------------------------------------
 const rayDir = new THREE.Vector3();
+/** The first block in reach along `camera`'s view, `t` blocks away, and `n` the face it was entered by; a liquid only if nothing solid is behind it. */
 function pickBlock(camera) {
   camera.getWorldDirection(rayDir);
   const o = camera.position;
@@ -23,8 +24,8 @@ function pickBlock(camera) {
   while (t <= REACH) {
     const id = getBlock(x, y, z);
     if (id) {
-      if (!BLOCKS[id].liquid) return { x, y, z, n, id };
-      if (!water && !startInWater) water = { x, y, z, n, id };
+      if (!BLOCKS[id].liquid) return { x, y, z, n, id, t };
+      if (!water && !startInWater) water = { x, y, z, n, id, t };
     }
     if (tx < ty && tx < tz) { x += sx; t = tx; tx += tdx; n = [-sx, 0, 0]; }
     else if (ty < tz) { y += sy; t = ty; ty += tdy; n = [0, -sy, 0]; }

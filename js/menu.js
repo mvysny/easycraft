@@ -8,10 +8,10 @@ const overlay = document.getElementById('overlay');
 const $ = id => document.getElementById(id);
 
 function showPage(name) {
-  $('page-main').classList.toggle('hidden', name !== 'main');
-  $('page-players').classList.toggle('hidden', name !== 'players');
+  for (const page of ['main', 'players', 'new']) $('page-' + page).classList.toggle('hidden', name !== page);
 }
 function renderMenu() {
+  $('mode-now').textContent = survival ? '❤️ Survival world' : '🌈 Creative world';
   $('chips').innerHTML = '';
   for (const p of players) {
     const c = document.createElement('span');
@@ -87,10 +87,11 @@ function pause() {
 $('play').addEventListener('click', () => startPlaying(true));
 $('players-btn').addEventListener('click', () => { renderMenu(); showPage('players'); });
 $('players-done').addEventListener('click', () => showPage('main'));
-$('newworld').addEventListener('click', e => {
-  e.currentTarget.blur();
-  if (confirm('Make a brand new world? Your current world will be gone.')) newWorld();
-});
+$('newworld').addEventListener('click', () => showPage('new'));
+$('new-back').addEventListener('click', () => showPage('main'));
+for (const b of document.querySelectorAll('#page-new [data-mode]')) {
+  b.addEventListener('click', () => { newWorld(b.dataset.mode); renderMenu(); showPage('main'); });
+}
 
 /** Controllers in the menu: A joins, B leaves, Start plays. While playing, Start opens the menu. */
 let padSignature = '';

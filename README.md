@@ -3,7 +3,8 @@
 EasyCraft is a block-building game for young kids that runs in a web browser: walk around a
 small island, take blocks away and build with twenty kinds of block, and find flowers, shells,
 apples and thirteen minerals, in caves, a desert and sunken ruins, to keep in your bag. There
-are no monsters, no damage and nothing to install — double-click `index.html` and play.
+are no monsters and nothing to install — double-click `index.html` and play. Nothing can hurt
+you, unless you start a survival world, where long falls and friends' hits cost hearts.
 
 ## Playing
 
@@ -29,8 +30,20 @@ Or open `index.html` in a browser (Chrome, Firefox, Edge or Safari); no internet
 Walking into a one-block step hops up it. A block of water you place falls and rolls downhill
 until it rests, so a few blocks poured into a hole make a pool; lava runs a few blocks from its
 pool; and the sea slowly fills any tunnel or hole you dig beside it, up to sea level. The world
-saves itself in the browser; **New world** in
-the menu starts over.
+saves itself in the browser; **New world** in the menu starts over, in creative or survival.
+
+## Survival
+
+**🌱 New world** asks how to play. **Creative** is the game as it always was: nothing can hurt
+you. In **Survival** everyone has ten hearts, shown above their hotbar:
+
+- The take-a-block button (left click, **RT**) hits a friend standing within reach in front of
+  you: half a heart, and a whole one — a critical hit — if you hit while jumping.
+- A fall of more than three blocks costs half a heart for each block beyond three. Landing in
+  water or lava costs nothing, and neither does flying.
+- With no hearts left you go back home with all ten again, and keep everything in your bag.
+
+The building blocks stay endless in survival too.
 
 ## Things to find
 

@@ -16,6 +16,7 @@ doc-comment content has crept in.
 - A `Player` is the component for one person at the screen: it owns its camera, its `Hud` (DOM over its part of the screen), its block outline and its body, and is handed one input source.
 - An input source (`KeyboardInput`, `PadInput`) turns raw devices into the same per-frame shape — movement, look deltas, held buttons, a bag-cursor direction, one-shot actions — so `Player` never knows which device it has. The DOM handlers feed the single `keyboard`; `Pads` polls the Gamepad API. What an action means is the `Player`'s call: with its bag open, the same input steers the bag's cursor and the player stands still.
 - A block says what taking it yields (`drop`) and what stays behind (`becomes`); a `Player` keeps its own bag (find → count) and hotbar, and both travel in its slot's save. Building blocks are never counted (`D_endless_blocks`).
+- A world is creative or survival: `survival` is set by `newWorld` and saved with the world. A `Player` keeps its own hearts, in its slot's save; every lost heart, a hit's or a fall's, goes through that player's `hurt`, which does nothing in a creative world (`D_survival`).
 - `generateWorld` shapes the island, then adds the desert, caves (with lava), sunken ruins (with chests) and trees; those come only with a new world. The finds come from `scatterFinds` and the minerals' ores from `scatterMinerals`, which work on any world: a save from before either existed (no `finds` / `minerals` flag) gets them on load.
 - Liquids flow by themselves: `changeBlock` wakes the cells around a change, and on its next step each liquid settles only the woken cells, writing `blocks` and `fluid` directly (`D_sea_fills`). A loaded or new world wakes every liquid that could move (`wakeAllLiquids`).
 - Three.js layers keep per-player objects in the right views: layer 0 is seen by every camera, a player's outline only by their own, their body by everyone else's. The layer numbers are `HIGHLIGHT_LAYER` and `AVATAR_LAYER`.
@@ -32,6 +33,8 @@ doc-comment content has crept in.
 5. `renderViews` draws the scene once per player into its own viewport and scissor rectangle, setting fog and sun for that player's camera first.
 
 **Taking a block** (`Player.breakBlock`): the block turns into its `becomes` (or air) → its `drop` goes into the bag (`collect`: count, chime, toast, hotbar redraw) → a flower, shell or apple standing on a block that is now gone comes along into the bag too.
+
+**Hitting a friend** (`Player.breakBlock`, survival only): `aim` finds another player's body within `HIT_REACH` and nearer than any block → `strike`: half a heart, a whole one if the hitter is in the air → the friend's `hurt`: hearts off, a push away, a red flash on their screen and their body → at no hearts, home with all ten. A fall is measured in `update`, from the highest point since last standing, swimming or flying, and passes straight to `hurt`.
 
 **Joining with a controller:** the menu is open → A on an unclaimed pad → `addPlayer(new PadInput(i))` takes the lowest free slot, restores that slot's saved position or spawns next to home → `relayout` re-splits the screen.
 

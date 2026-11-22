@@ -3,13 +3,19 @@
 
 const MAX_PLAYERS = 4;
 const PLAYER_COLORS = ['#3b82f6', '#ef4444', '#22c55e', '#eab308'];
+const MAX_LIVES = 10;   // hearts, in a survival world
+const SAFE_FALL = 3;    // blocks a player falls for free; each block more costs half a heart
+const HIT_REACH = 3.5;  // how far a hit reaches, in blocks
+const HIT_PAUSE = 0.5;  // seconds after a hit when further hits do nothing
 
 // ---------------------------------------------------------------------------
 // Player: one person at the screen — body, camera, HUD, and one input source.
 // ---------------------------------------------------------------------------
 const players = [];     // sorted by slot, so Player 1 is always top-left
-// slot -> [x, y, z, yaw, pitch, flying, selected, bag {id: count}, hotbar [id…]]; survives leaving and saving
+// slot -> [x, y, z, yaw, pitch, flying, selected, bag {id: count}, hotbar [id…], lives]; survives leaving and saving
 const savedSlots = {};
+let survival = false;   // the world's mode, chosen with a new world: hearts, hits and falls count
+const aimRay = new THREE.Ray(), aimBox = new THREE.Box3(), aimPoint = new THREE.Vector3();
 
 class Player {
   constructor(slot, input) {
@@ -25,9 +31,14 @@ class Player {
     this.bagCursor = null;         // index into BAG_ITEMS while the bag is open, else null
     this.navDir = ''; this.navTimer = 0;
     this.holdOff = false;          // ignore held buttons until they are let go (after closing the bag)
-    this.walkPhase = 0; this.swing = 0;
+    this.walkPhase = 0; this.swing = 0; this.punch = 0;
     this.breakTimer = 0; this.placeTimer = 0; this.wasBreak = false; this.wasPlace = false;
     this.rect = { x: 0, y: 0, w: 1, h: 1 };
+    this.lives = MAX_LIVES;
+    this.fallTop = 0;              // the highest point since last standing, swimming or flying
+    this.swimming = false;
+    this.knock = new THREE.Vector3();   // a hit's push, fading
+    this.hurtPause = 0; this.hurtGlow = 0;
 
     this.camera = new THREE.PerspectiveCamera(72, 1, 0.05, 600);
     this.camera.rotation.order = 'YXZ';
@@ -42,6 +53,7 @@ class Player {
 
     if (savedSlots[slot]) this.restore(savedSlots[slot]); else this.goHome();
     this.hud.showHotbar(this.hotbar, this.bag);
+    this.showLives();
     this.select(this.selected, true);
     this.syncCamera();
     this.updateAvatar(0);
@@ -55,16 +67,19 @@ class Player {
     for (const [id, n] of Object.entries(s[7] || {})) if (isFind(+id)) this.bag.set(+id, Math.max(0, n | 0));
     const known = id => BAG_ITEMS.includes(id);
     if (Array.isArray(s[8]) && s[8].length === HOTBAR.length && s[8].every(known)) this.hotbar = s[8].slice();
+    if (s[9] > 0 && s[9] <= MAX_LIVES) this.lives = Math.ceil(s[9] * 2) / 2;
+    this.fallTop = this.pos.y;
   }
   snapshot() {
     const p = this.pos;
     return [p.x, p.y, p.z, this.yaw, this.pitch, this.flying ? 1 : 0, this.selected,
-      Object.fromEntries(this.bag), this.hotbar.slice()];
+      Object.fromEntries(this.bag), this.hotbar.slice(), this.lives];
   }
   dispose() {
     scene.remove(this.highlight, this.avatar.root);
     this.avatar.tag.material.map.dispose();
     this.avatar.tag.material.dispose();
+    this.avatar.mat.dispose();
     this.hud.dispose();
   }
 
@@ -74,6 +89,67 @@ class Player {
     const z = Math.min(SZ - 1, Math.floor(home.z) + (this.slot >> 1));
     this.pos.set(x + 0.5, surfaceY(x, z), z + 0.5);
     this.vel.set(0, 0, 0);
+    this.knock.set(0, 0, 0);
+    this.fallTop = this.pos.y;
+  }
+  showLives() { this.hud.showLives(survival ? this.lives : null); }
+  /**
+   * Takes `amount` hearts off, in a survival world; a player left with none goes home with all
+   * ten again, bag and hotbar kept.
+   * @param {number} amount hearts, in halves.
+   * @param {Player} [from] the hitter: the hit pushes this player away from them, and does nothing
+   *   within HIT_PAUSE of the last one. A fall passes none.
+   * @returns {boolean} whether it hurt.
+   */
+  hurt(amount, from) {
+    if (!survival || (from && this.hurtPause > 0)) return false;
+    this.lives = Math.max(0, this.lives - amount);
+    this.hurtPause = HIT_PAUSE; this.hurtGlow = 1;
+    playHurt();
+    this.hud.flashHurt();
+    if (from) {
+      const dx = this.pos.x - from.pos.x, dz = this.pos.z - from.pos.z, len = Math.hypot(dx, dz) || 1;
+      this.knock.set(dx / len * 7, 0, dz / len * 7);
+      if (!this.flying) this.vel.y = Math.max(this.vel.y, 5);
+    }
+    if (this.lives <= 0) {
+      this.goHome();
+      this.lives = MAX_LIVES;
+      this.hud.toast('💫 Out of hearts — back home!', 2200);
+    }
+    this.showLives();
+    return true;
+  }
+  /** Hits `other` for half a heart; in the air (not flying or swimming) it is a critical hit, a whole heart. */
+  strike(other) {
+    this.punch = 1;
+    const crit = !this.onGround && !this.flying && !this.swimming;
+    if (!other.hurt(crit ? 1 : 0.5, this) || !crit) return;
+    spray(other.pos.x - 0.5, other.pos.y + 0.6, other.pos.z - 0.5, 0xffd23f, AVATAR_LAYER + other.slot);
+    this.hud.toast('💥 Critical hit!');
+  }
+  /**
+   * What this player points at: `player` is another player within HIT_REACH, in a survival world
+   * only, and nearer than any block; otherwise `block` is what `pickBlock` sees.
+   * @returns {{block: ?Object, player: ?Player}} at most one of the two is set.
+   */
+  aim() {
+    const block = pickBlock(this.camera);
+    if (!survival) return { block, player: null };
+    let player = null, near = block && !BLOCKS[block.id].liquid ? Math.min(HIT_REACH, block.t) : HIT_REACH;
+    aimRay.origin.copy(this.camera.position);
+    this.camera.getWorldDirection(aimRay.direction);
+    for (const q of players) {
+      if (q === this) continue;
+      // the body as avatar.js draws it, head and arms included, not the narrower box it collides with
+      const p = q.pos;
+      aimBox.min.set(p.x - 0.4, p.y, p.z - 0.4);
+      aimBox.max.set(p.x + 0.4, p.y + 2.05, p.z + 0.4);
+      if (!aimRay.intersectBox(aimBox, aimPoint)) continue;
+      const t = aimPoint.distanceTo(aimRay.origin);
+      if (t < near) { near = t; player = q; }
+    }
+    return player ? { block: null, player } : { block, player: null };
   }
   setFlying(on) { this.flying = on; this.vel.y = 0; this.hud.flying = on; }
   select(i, quiet) {
@@ -93,7 +169,8 @@ class Player {
   }
 
   breakBlock() {
-    const hit = pickBlock(this.camera);
+    const { block: hit, player } = this.aim();
+    if (player) { this.strike(player); return; }
     if (!hit) return;
     const b = BLOCKS[hit.id];
     if (b.unbreakable) { playPlace(0.4); return; }
@@ -234,9 +311,11 @@ class Player {
     if (len > 0) { ux /= len; uz /= len; }
 
     const p = this.pos, v = this.vel;
-    const swim = !this.flying && inWater({ x: p.x, y: p.y + 0.4, z: p.z });
+    const swim = this.swimming = !this.flying && inWater({ x: p.x, y: p.y + 0.4, z: p.z });
     const speed = (this.flying ? FLY : swim ? 3.2 : WALK) * mag;
-    v.x = ux * speed; v.z = uz * speed;
+    v.x = ux * speed + this.knock.x; v.z = uz * speed + this.knock.z;
+    this.knock.multiplyScalar(Math.exp(-6 * dt));
+    this.hurtPause = Math.max(0, this.hurtPause - dt);
     if (this.flying) {
       v.y = (it.jump ? 8 : 0) - (it.down ? 8 : 0);
     } else if (swim) {
@@ -277,6 +356,14 @@ class Player {
       }
     }
     if (p.y < -5) this.goHome();
+    // water, lava and flying break a fall
+    if (this.flying || inWater({ x: p.x, y: p.y + 0.1, z: p.z })) this.fallTop = p.y;
+    else if (!this.onGround) this.fallTop = Math.max(this.fallTop, p.y);
+    else {
+      const extra = Math.floor(this.fallTop - p.y - SAFE_FALL);
+      this.fallTop = p.y;
+      if (extra > 0) this.hurt(extra * 0.5);
+    }
     this.syncCamera();
 
     // holding a button keeps breaking / placing
@@ -310,11 +397,15 @@ class Player {
     this.swing += ((walking ? 1 : 0) - this.swing) * Math.min(1, dt * 10);
     if (walking) this.walkPhase += dt * speed * 2.2;
     const sw = Math.sin(this.walkPhase) * 0.7 * this.swing;
+    this.punch = Math.max(0, this.punch - dt * 5);
     a.legL.rotation.x = sw; a.legR.rotation.x = -sw;
-    a.armL.rotation.x = -sw; a.armR.rotation.x = sw;
+    a.armL.rotation.x = -sw; a.armR.rotation.x = sw + 1.6 * this.punch;
+    // a hurt player blushes red for a moment, so the hitter sees the hit land
+    this.hurtGlow = Math.max(0, this.hurtGlow - dt * 3);
+    a.glow.value = 0.65 * this.hurtGlow;
   }
   updateHighlight() {
-    const hit = playing && this.bagCursor === null ? pickBlock(this.camera) : null;
+    const hit = playing && this.bagCursor === null ? this.aim().block : null;
     this.highlight.visible = !!hit;
     if (hit) {
       const [w, h] = { cube: [1, 1], cross: [0.72, 0.85], flat: [0.8, 0.12] }[BLOCKS[hit.id].shape];

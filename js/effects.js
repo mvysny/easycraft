@@ -58,16 +58,32 @@ function playBreak(pitch) {
   o.connect(og).connect(audio.destination);
   o.start(t); o.stop(t + 0.13);
 }
+/** A soft falling "oof" for losing a heart. */
+function playHurt() {
+  if (!audio) return;
+  const t = audio.currentTime, o = audio.createOscillator(), g = audio.createGain();
+  o.type = 'triangle';
+  o.frequency.setValueAtTime(320, t);
+  o.frequency.exponentialRampToValueAtTime(140, t + 0.18);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.3, t + 0.015);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+  o.connect(g).connect(audio.destination);
+  o.start(t); o.stop(t + 0.24);
+}
 
 // ---------------------------------------------------------------------------
 // Particles when a block breaks
 // ---------------------------------------------------------------------------
 const particles = [];
 const particleGeo = new THREE.BoxGeometry(0.14, 0.14, 0.14);
-function burst(x, y, z, id) {
-  const mat = new THREE.MeshBasicMaterial({ color: BLOCKS[id].color, transparent: true });
+function burst(x, y, z, id) { spray(x, y, z, BLOCKS[id].color, 0); }
+/** Bits of `color` flying out of the block-sized box at (x, y, z), seen only by the cameras that see `layer`. */
+function spray(x, y, z, color, layer) {
+  const mat = new THREE.MeshBasicMaterial({ color, transparent: true });
   for (let i = 0; i < 14; i++) {
     const m = new THREE.Mesh(particleGeo, mat);
+    m.layers.set(layer);
     m.position.set(x + 0.2 + Math.random() * 0.6, y + 0.2 + Math.random() * 0.6, z + 0.2 + Math.random() * 0.6);
     m.userData.v = new THREE.Vector3((Math.random() - 0.5) * 4, 2 + Math.random() * 3, (Math.random() - 0.5) * 4);
     m.userData.life = 0.6 + Math.random() * 0.3;

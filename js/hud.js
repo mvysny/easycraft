@@ -1,4 +1,4 @@
-// A player's HUD: crosshair, hotbar, toasts and bag, over their part of the screen.
+// A player's HUD: crosshair, hotbar, hearts, toasts and bag, over their part of the screen.
 'use strict';
 
 // ---------------------------------------------------------------------------
@@ -54,9 +54,11 @@ class Hud {
     const el = this.el = document.createElement('div');
     el.className = 'hud';
     el.style.setProperty('--pc', PLAYER_COLORS[slot]);
-    el.innerHTML = `<div class="top"><div class="tag">P${slot + 1}</div><div class="badge">✈️ Flying!</div></div>
+    el.innerHTML = `<div class="hurt"></div>
+      <div class="top"><div class="tag">P${slot + 1}</div><div class="badge">✈️ Flying!</div></div>
       <div class="help">${input.bagKey} = bag · ${input.menuKey} = menu</div>
-      <div class="crosshair"></div><div class="msg"></div><div class="toast"></div><div class="hotbar"></div>
+      <div class="crosshair"></div><div class="msg"></div><div class="toast"></div>
+      <div class="hearts">${'<i class="heart"></i>'.repeat(MAX_LIVES)}</div><div class="hotbar"></div>
       <div class="bag"><h3>🎒 Bag</h3>
         <h4>🧱 Build with</h4><div class="grid blocks"></div>
         <h4>✨ Found</h4><div class="grid finds"></div>
@@ -67,6 +69,9 @@ class Hud {
     this.msgEl = el.querySelector('.msg');
     this.bagEl = el.querySelector('.bag');
     this.bagName = el.querySelector('.bag .name');
+    this.hearts = [...el.querySelectorAll('.heart')];
+    this.hurtEl = el.querySelector('.hurt');
+    this.hurtTimer = 0;
     const grids = [el.querySelector('.grid.blocks'), el.querySelector('.grid.finds')];
     this.cells = BAG_ITEMS.map((id, i) => {
       const c = document.createElement('div');
@@ -116,6 +121,17 @@ class Hud {
       : (bag.has(id) ? `${BLOCKS[id].name} × ${bag.get(id)}` : `Not found yet — ${find.hint}`)
         + (find.rarity ? ` (${find.rarity})` : '');
   }
+  /** Shows `lives` as hearts, 7.5 as seven and a half, or hides the hearts when `lives` is null. */
+  showLives(lives) {
+    this.el.classList.toggle('survival', lives !== null);
+    this.hearts.forEach((h, i) => { h.className = 'heart' + (lives >= i + 1 ? '' : lives > i ? ' half' : ' empty'); });
+  }
+  /** Glows red round the edges for a moment. */
+  flashHurt() {
+    this.hurtEl.classList.add('show');
+    clearTimeout(this.hurtTimer);
+    this.hurtTimer = setTimeout(() => this.hurtEl.classList.remove('show'), 120);
+  }
   set flying(on) { this.badgeEl.classList.toggle('show', on); }
   set message(text) {
     if (text === this.shownMessage) return;
@@ -127,5 +143,5 @@ class Hud {
     Object.assign(this.el.style, { left: r.x + 'px', top: r.y + 'px', width: r.w + 'px', height: r.h + 'px' });
     this.el.classList.toggle('split', split);
   }
-  dispose() { clearTimeout(this.toastTimer); this.el.remove(); }
+  dispose() { clearTimeout(this.toastTimer); clearTimeout(this.hurtTimer); this.el.remove(); }
 }

@@ -35,6 +35,18 @@ survival game: gold, glass and the colours would need a way to be made, which is
 menu-heavy game of its own. Why not a sticker collection you cannot place: building with what you
 found is the reward. Reversing this means a starter kit, crafting and a much fuller bag screen.
 
+## D_survival — Why is survival a world's mode, whose hearts only send you home, rather than a survival game?
+
+**Gentle for young kids** keeps holding by default: a new world asks creative or survival, and
+only a survival world counts hearts, so friends who want to chase and bonk each other pick it and
+a child who wants to build in peace never meets it. It is per world, not per player, because a
+split screen shares one world and a hit that only hurts one side is unfair. The numbers make it
+tag rather than a fight: ten hearts, half for a hit or for each block fallen beyond three, a whole
+one for a hit from the air. Running out sends you home with all ten, bag and hotbar kept: losing
+the treasure you found is the punishment the promise rules out. Hearts don't heal, so running out
+ends a round, and home is the fresh start. Why not hunger, night or counted blocks, as survival
+games have: each is a chore before the fun (`D_endless_blocks`).
+
 ## D_sea_fills — Why does the sea fill whatever is dug beside it, when placed water moves as one block?
 
 A tunnel dug from the sea should fill up, as at a real seaside. The sea is a source that knows its

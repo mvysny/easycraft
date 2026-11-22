@@ -39,7 +39,7 @@ function saveWorld() {
     for (const p of players) savedSlots[p.slot] = p.snapshot();
     localStorage.setItem(SAVE_KEY, JSON.stringify({
       size: [SX, SY, SZ], data: packRuns(blocks), fluid: packRuns(fluid),
-      players: savedSlots, home: [home.x, home.y, home.z], finds: 1, minerals: 1,
+      players: savedSlots, home: [home.x, home.y, home.z], finds: 1, minerals: 1, survival: survival ? 1 : 0,
     }));
     worldDirty = false;
   } catch (e) {
@@ -62,6 +62,7 @@ function loadWorld() {
     if (!s.finds) scatterFinds(rnd);         // saved before there were finds
     if (!s.minerals) scatterMinerals(rnd);   // or before there were minerals
     home.set(...s.home);
+    survival = !!s.survival;
     if (s.players) Object.assign(savedSlots, s.players);
     else if (s.player) savedSlots[0] = [...s.player.slice(0, 6), s.selected || 0];   // a single-player save
     return true;
@@ -70,7 +71,9 @@ function loadWorld() {
     return false;
   }
 }
-function newWorld() {
+/** Replaces the world with a freshly generated one; `mode` is 'creative' or 'survival'. */
+function newWorld(mode) {
+  survival = mode === 'survival';
   generateWorld((Math.random() * 1e9) | 0);
   findHome();
   wakeAllLiquids();
@@ -79,6 +82,8 @@ function newWorld() {
     p.yaw = Math.PI * 0.25; p.pitch = -0.15;
     p.setFlying(false);
     p.goHome();
+    p.lives = MAX_LIVES;
+    p.showLives();
     p.syncCamera();
     p.updateAvatar(0);
   }

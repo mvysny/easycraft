@@ -87,10 +87,26 @@
   .pid { font-size: 11px; color: #7a8a9a; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .pcard .btn.small { font-size: 14px; padding: 4px 12px; box-shadow: 0 3px 0 #b9c4d0; }
 
+  /* new-world page, and the world's mode on the main page */
+  .mode-now { margin: 0 0 12px; font-size: 16px; font-weight: 600; color: #4a5b6c; }
+  .modes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 480px) { .modes { grid-template-columns: 1fr; } }
+  .mode {
+    font: inherit; color: var(--ink); cursor: pointer; background: #fff;
+    border: 4px solid #c9d4df; border-radius: 18px; padding: 12px; box-shadow: 0 5px 0 #b9c4d0;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .mode:hover { border-color: var(--sun); }
+  .mode:active { transform: translateY(4px); box-shadow: 0 1px 0 #b9c4d0; }
+  .mode .icon { font-size: 40px; line-height: 1.1; }
+  .mode b { font-size: 24px; }
+  .mode span:last-child { font-size: 15px; color: #4a5b6c; }
+
   /* ---- one HUD per player, laid over that player's part of the screen ---- */
   .hud {
     position: fixed; pointer-events: none; z-index: 5; overflow: hidden; container-type: size;
     --slot: min(48px, calc((100cqw - 100px) / 20));
+    --heart: min(26px, calc(var(--slot) * 0.55));
   }
   .hud.split { box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.55); }
   .hud .crosshair { position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; transform: translate(-50%, -50%); }
@@ -164,6 +180,29 @@
     opacity: 0; transition: opacity 0.35s;
   }
   .hud .toast.show { opacity: 1; transition: none; }
+  .hud.survival .toast { bottom: calc(var(--slot) + 40px + var(--heart)); }
+
+  /* hearts, in a survival world; a half heart clips the red one over the empty one */
+  .hud .hearts {
+    position: absolute; left: 50%; bottom: calc(var(--slot) + 30px); transform: translateX(-50%);
+    display: none; gap: 2px;
+  }
+  .hud.survival .hearts { display: flex; }
+  .hud .heart {
+    width: var(--heart); height: var(--heart); position: relative;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 21L3.1 12.4A5.5 5.5 0 1 1 12 6.2A5.5 5.5 0 1 1 20.9 12.4Z' fill='%23000' fill-opacity='.3' stroke='%23000' stroke-opacity='.35' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+  }
+  .hud .heart::after {
+    content: ''; position: absolute; inset: 0;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 21L3.1 12.4A5.5 5.5 0 1 1 12 6.2A5.5 5.5 0 1 1 20.9 12.4Z' fill='%23ef4444' stroke='%23000' stroke-opacity='.35' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+  }
+  .hud .heart.half::after { clip-path: inset(0 50% 0 0); }
+  .hud .heart.empty::after { display: none; }
+  .hud .hurt {
+    position: absolute; inset: 0; opacity: 0; transition: opacity 0.45s;
+    box-shadow: inset 0 0 14cqmin 2cqmin rgba(235, 45, 45, 0.6);
+  }
+  .hud .hurt.show { opacity: 1; transition: none; }
   .hud .msg {
     position: absolute; left: 50%; top: 60%; transform: translateX(-50%); display: none;
     background: rgba(0, 0, 0, 0.55); color: #fff; padding: 8px 16px; border-radius: 12px;
@@ -198,6 +237,7 @@
         <tr><td>Menu</td><td><kbd>Esc</kbd></td><td><kbd>Start</kbd></td></tr>
       </tbody>
     </table>
+    <p class="mode-now" id="mode-now"></p>
     <button class="btn" id="play">Play!</button>
     <div class="row">
       <button class="btn small" id="players-btn">👥 Players <span id="chips"></span></button>
@@ -211,6 +251,18 @@
     <div id="slots"></div>
     <p class="hint" id="padinfo"></p>
     <div class="row"><button class="btn" id="players-done">Done</button></div>
+  </div>
+
+  <div class="card page hidden" id="page-new">
+    <h2>🌱 A new world</h2>
+    <div class="modes">
+      <button class="mode" data-mode="creative"><span class="icon">🌈</span><b>Creative</b>
+        <span>Build and explore. Nothing can hurt you.</span></button>
+      <button class="mode" data-mode="survival"><span class="icon">❤️</span><b>Survival</b>
+        <span>Ten hearts each. Long falls and friends' hits cost hearts — hit while jumping for double!</span></button>
+    </div>
+    <p class="hint">Your current world will be gone.</p>
+    <div class="row"><button class="btn small" id="new-back">Back</button></div>
   </div>
 </div>
 

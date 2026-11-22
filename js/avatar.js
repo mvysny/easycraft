@@ -5,8 +5,7 @@
 // Player bodies: a blocky figure in the player's colour, with a name tag that
 // shows through walls so kids can find each other.
 // ---------------------------------------------------------------------------
-const avatarMat = new THREE.MeshBasicMaterial({ vertexColors: true });
-function shadedBox(w, h, d, color) {
+function shadedBox(w, h, d, color, mat) {
   const g = new THREE.BoxGeometry(w, h, d);
   const c = new THREE.Color(color);
   const shade = [0.8, 0.8, 1, 0.55, 0.68, 0.68];   // BoxGeometry face order: +x -x +y -y +z -z
@@ -16,15 +15,25 @@ function shadedBox(w, h, d, color) {
     for (let v = 0; v < 4; v++) cols.push(c.r * k, c.g * k, c.b * k);
   }
   g.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
-  return new THREE.Mesh(g, avatarMat);
+  return new THREE.Mesh(g, mat);
 }
+/** A player's body; setting `glow.value` (0–1) mixes red over the whole of it, and over no other body. */
 function makeAvatar(slot) {
   const color = PLAYER_COLORS[slot];
   const root = new THREE.Group();
+  const glow = { value: 0 };
+  const mat = new THREE.MeshBasicMaterial({ vertexColors: true });
+  // A colour multiply can't turn a blue body red, only darker, so the red is mixed in after shading.
+  mat.onBeforeCompile = shader => {
+    shader.uniforms.glow = glow;
+    shader.fragmentShader = 'uniform float glow;\n' + shader.fragmentShader.replace('#include <dithering_fragment>',
+      '#include <dithering_fragment>\n  gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(0.95, 0.12, 0.1), glow);');
+  };
+  const box = (w, h, d, col) => shadedBox(w, h, d, col, mat);
   const limb = (w, h, d, col, x, y) => {
     const pivot = new THREE.Group();
     pivot.position.set(x, y, 0);
-    const m = shadedBox(w, h, d, col);
+    const m = box(w, h, d, col);
     m.position.y = -h / 2;
     pivot.add(m);
     root.add(pivot);
@@ -32,7 +41,7 @@ function makeAvatar(slot) {
   };
   const legL = limb(0.26, 0.75, 0.28, '#2b3f7a', -0.14, 0.75);
   const legR = limb(0.26, 0.75, 0.28, '#2b3f7a', 0.14, 0.75);
-  const body = shadedBox(0.6, 0.72, 0.32, color);
+  const body = box(0.6, 0.72, 0.32, color);
   body.position.y = 1.11;
   root.add(body);
   const armL = limb(0.2, 0.7, 0.22, color, -0.41, 1.45);
@@ -40,13 +49,13 @@ function makeAvatar(slot) {
   const head = new THREE.Group();
   head.position.y = 1.47;
   root.add(head);
-  const skull = shadedBox(0.5, 0.5, 0.5, '#f2c79b');
+  const skull = box(0.5, 0.5, 0.5, '#f2c79b');
   skull.position.y = 0.25;
-  const hair = shadedBox(0.54, 0.14, 0.54, '#5a3a22');
+  const hair = box(0.54, 0.14, 0.54, '#5a3a22');
   hair.position.y = 0.49;
   head.add(skull, hair);
   for (const x of [-0.11, 0.11]) {   // the face looks along -z, like the camera
-    const eye = shadedBox(0.08, 0.08, 0.02, '#1d2b3a');
+    const eye = box(0.08, 0.08, 0.02, '#1d2b3a');
     eye.position.set(x, 0.27, -0.255);
     head.add(eye);
   }
@@ -67,5 +76,5 @@ function makeAvatar(slot) {
   tag.renderOrder = 10;
   root.add(tag);
   setLayer(root, AVATAR_LAYER + slot);
-  return { root, head, legL, legR, armL, armR, tag };
+  return { root, head, legL, legR, armL, armR, tag, mat, glow };
 }

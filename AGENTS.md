@@ -5,11 +5,12 @@
 EasyCraft is a block-building game for young kids that runs in a web browser: walk around a
 small island, take blocks away and build with twenty kinds of block, and find flowers, shells,
 apples and thirteen minerals, in caves, a desert and sunken ruins, to keep in your bag. There
-are no monsters, no damage and nothing to install — double-click `index.html` and play.
+are no monsters and nothing to install — double-click `index.html` and play. Nothing can hurt
+you, unless you start a survival world, where long falls and friends' hits cost hearts.
 
 ## Promises
 
-- **Gentle for young kids.** Nothing scares or punishes: no monsters, damage, hunger or night, and no way to get stuck or lost.
+- **Gentle for young kids.** Nothing scares or punishes: no monsters, hunger or night, and no way to get stuck or lost; damage only in a survival world, which a new world opts into, and running out of hearts only sends you home.
 - **Double-click to play.** Opens from `file://` with no install, server, build step or network.
 - **Original, not a clone.** Its own name and its own procedurally painted art; nothing copied from an existing game.
 
@@ -46,7 +47,7 @@ Every fact lives in exactly one of these; the others link to it.
 - `js/liquids.js` — water and lava flowing: pouring down, running a few blocks, the sea filling what is dug beside it.
 - `js/input.js` — `KeyboardInput`, `Pads`, `PadInput` and the DOM handlers that feed the keyboard.
 - `js/specimens.js` — the minerals' bag pictures: crystals, cut stones, lumps, painted over their block's texture.
-- `js/hud.js`, `js/player.js` — a player's HUD and bag; the `Player` component.
+- `js/hud.js`, `js/player.js` — a player's HUD, bag and hearts; the `Player` component, with its hits and falls.
 - `js/screen.js`, `js/save.js`, `js/menu.js` — split screen and joining; saving; the menu.
 - `js/main.js` — starts the game and runs the frame loop; loaded last.
 - `vendor/three/` — three.js 0.160.1 `three.min.js`, the classic global-`THREE` build, and its MIT licence.

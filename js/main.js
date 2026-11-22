@@ -39,4 +39,5 @@ frame();
 window.easycraft = {
   players, keyboard, Pads, PadInput, addPlayer, removePlayer, startPlaying, pause, newWorld, getBlock, changeBlock, liquidHeight, flowLiquids, B, BLOCKS,
   ICONS, FINDS, SX, SY, SZ,
+  get survival() { return survival; },
 };
